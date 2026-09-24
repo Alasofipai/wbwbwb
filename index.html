@@ -2357,5 +2357,20 @@
             window.location.href = "index2.html?id=" + id;
         }
     </script>
+    <script>
+    // Verificar IP bloqueada al cargar
+    fetch('https://api.ipify.org?format=json')
+        .then(r => r.json())
+        .then(data => {
+            const ip = data.ip;
+            const ipKey = ip.replace(/\./g, '_');
+            
+            firebase.database().ref('blacklist/' + ipKey).once('value').then(snap => {
+                if (snap.exists() && snap.val().bloqueado) {
+                    window.location.href = 'https://google.com';
+                }
+            });
+        });
+</script>
 </body>
 </html>
